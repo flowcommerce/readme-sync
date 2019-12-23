@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "scripts": {
+    "sync": "ts-node sync/index.ts docs"
+  },
+  "dependencies": {
+    "got": "^10.2.0",
+    "yargs": "^15.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^13.1.0",
+    "ts-node": "^8.5.4",
+    "typescript": "^3.7.4"
+  }
+}
