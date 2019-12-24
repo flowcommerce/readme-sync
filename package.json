@@ -2,6 +2,7 @@
   "version": "0.0.1",
   "dependencies": {
     "got": "^10.2.0",
+    "gray-matter": "^4.0.2",
     "yargs": "^15.0.2"
   },
   "devDependencies": {
