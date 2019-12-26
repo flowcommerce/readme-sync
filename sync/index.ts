@@ -17,9 +17,11 @@ const argv = yargs
 
 const client = new Client(argv.apiKey, argv.version)
 
-function upsertDoc(remoteTree: object, category: string, filepath: string, options: { parentId?: string, slug?: string } = {}) {
+function upsertDoc(remoteTree: object, category: string, filepath: string, options: { parentDoc?: string, slug?: string } = {}) {
     assert(fs.statSync(filepath).isFile)
     const slug = options.slug || slugify(path.parse(filepath).name)
+
+    console.log(`Syncing doc ${filepath} with slug "${slug}"`)
 
     const existing = remoteTree[slugify(category)].docs.find((doc) => {
         if (doc.slug === slug)
@@ -31,10 +33,11 @@ function upsertDoc(remoteTree: object, category: string, filepath: string, optio
     const metadata = matter(fs.readFileSync(filepath))
 
     const form: DocParams = {
+        slug,
         title: metadata.data.title,
         body: metadata.content,
         category: remoteTree[slugify(category)]._id,
-        parentId: null,
+        parentDoc: options.parentDoc,
         hidden: false,
     }
 
@@ -49,6 +52,7 @@ function upsertDoc(remoteTree: object, category: string, filepath: string, optio
 
 async function upsertDir(remoteTree: object, category: string, dirpath: string) {
     assert(fs.statSync(dirpath).isDirectory)
+    console.log(`Syncing dir ${dirpath}`)
 
     const children = fs.readdirSync(dirpath)
     if (!children.includes('index.md')) {
@@ -62,13 +66,13 @@ async function upsertDir(remoteTree: object, category: string, dirpath: string) 
         if (child === 'index.md')
             continue;
 
-        await upsertDoc(remoteTree, category, path.join(dirpath, child), { parentId: parent._id })
+        await upsertDoc(remoteTree, category, path.join(dirpath, child), { parentDoc: parent._id })
     }
 }
 
 /**
  * Only one layer of nesting supported
- * 
+ *
  * category/
  * +- doc1.md
  * +- doc2.md

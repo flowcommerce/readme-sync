@@ -1,4 +1,5 @@
 {
+  "name": "readme-sync",
   "version": "0.0.1",
   "dependencies": {
     "got": "^10.2.0",

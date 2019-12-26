@@ -3,10 +3,11 @@ import got, { Got, Response, CancelableRequest } from 'got'
 const BASE_URL = 'https://dash.readme.io/api/v1'
 
 export interface DocParams {
+    slug?: string
     title: string
     body: string
     category: string
-    parentId?: string
+    parentDoc?: string
     hidden: boolean
 }
 
@@ -25,7 +26,7 @@ export class Client {
                 beforeRequest: [
                     (opts) => {
                         console.log(`${opts.method} ${opts.url}`);
-                        console.log(opts.body)
+                        console.log(opts.json)
                         console.log(opts.headers)
                     }
                 ]
