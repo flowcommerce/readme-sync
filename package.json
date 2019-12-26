@@ -1,14 +1,14 @@
 {
   "name": "readme-sync",
   "author": "Ben Iofel <ben@flow.io>",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "repository": {
     "url": "https://github.com/flowcommerce/readme-sync",
     "type": "git"
   },
   "license": "MIT",
   "scripts": {
-    "prepublish": "tsc"
+    "prepare": "tsc"
   },
   "bin": {
     "readme-sync": "build/index.js"
