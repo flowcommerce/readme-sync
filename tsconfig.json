@@ -1,6 +1,14 @@
 {
     "compilerOptions": {
-        "target": "ES2018",
-        "downlevelIteration": true
-    }
+        "target": "ES2015",
+        "downlevelIteration": true,
+        "outDir": "build/",
+        "module": "commonjs"
+    },
+    "include": [
+        "sync"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
 }
