@@ -42,7 +42,7 @@ export class Client {
         return this.client.put(`/docs/${slug}`, { json: body })
     }
 
-    deleteDoc(slug: string) {
+    deleteDoc(slug: string): CancelableRequest<Response<void>> {
         return this.client.delete(`/docs/${slug}`)
     }
 }

@@ -7,22 +7,22 @@ import { Client } from './client'
 import { HTTPError } from 'got'
 import * as matter from 'gray-matter'
 import * as assert from 'assert'
-import { DocForm, Category, DocSummaryParent } from './generated/readme'
+import { DocForm, Category, DocSummaryParent, Doc } from './generated/readme'
 
 const argv = yargs
-                .version(false)
-                .options({
-                    'apiKey': { type: 'string', demandOption: true },
-                    'docs': { type: 'string', demandOption: true },
-                    'version': { type: 'string', demandOption: true },
-                }).argv
+    .version(false)
+    .options({
+        'apiKey': { type: 'string', demandOption: true },
+        'docs': { type: 'string', demandOption: true },
+        'version': { type: 'string', demandOption: true },
+    }).argv
 
 const client = new Client(argv.apiKey, argv.version)
 
-type RemoteTreeEntry = { category: Category, docs: DocSummaryParent[] }
+type RemoteTreeEntry = { category: Category; docs: DocSummaryParent[] }
 type RemoteTree = Map<string, RemoteTreeEntry>
 
-function upsertDoc(remoteTree: RemoteTree, category: string, filepath: string, options: { parentDoc?: string, slug?: string } = {}) {
+function upsertDoc(remoteTree: RemoteTree, category: string, filepath: string, options: { parentDoc?: string; slug?: string } = {}): Promise<Doc> {
     assert(fs.statSync(filepath).isFile)
     const slug = options.slug || slugify(path.parse(filepath).name)
 
@@ -53,7 +53,7 @@ function upsertDoc(remoteTree: RemoteTree, category: string, filepath: string, o
     }
 }
 
-async function upsertDir(remoteTree: RemoteTree, category: string, dirpath: string) {
+async function upsertDir(remoteTree: RemoteTree, category: string, dirpath: string): Promise<void> {
     assert(fs.statSync(dirpath).isDirectory)
     console.log(`\tSyncing dir ${dirpath}`)
 
@@ -67,13 +67,13 @@ async function upsertDir(remoteTree: RemoteTree, category: string, dirpath: stri
 
     for (const child of children) {
         if (child === 'index.md')
-            continue;
+            continue
 
         await upsertDoc(remoteTree, category, path.join(dirpath, child), { parentDoc: parent._id })
     }
 }
 
-async function deleteNotPresent({ category, docs }: RemoteTreeEntry) {
+async function deleteNotPresent({ category, docs }: RemoteTreeEntry): Promise<void> {
     for (const doc of docs) {
         // delete children
         for (const child of doc.children) {
@@ -102,7 +102,7 @@ async function deleteNotPresent({ category, docs }: RemoteTreeEntry) {
  *    +- child.md
  *    +- index.md
  */
-async function sync(remoteTree: RemoteTree) {
+async function sync(remoteTree: RemoteTree): Promise<void> {
     for (const category of fs.readdirSync(argv.docs)) {
         console.log(category)
         const categoryPath = path.join(argv.docs, category)
@@ -119,7 +119,7 @@ async function sync(remoteTree: RemoteTree) {
     }
 }
 
-async function main() {
+async function main(): Promise<void> {
     const localCategories = fs.readdirSync(argv.docs)
     const remoteTree: RemoteTree = new Map()
     let errored = false
@@ -142,7 +142,7 @@ async function main() {
     if (errored)
         return
 
-    for (const [slug, { category }] of remoteTree) {
+    for (const [, { category }] of remoteTree) {
         const remoteDocs = await client.getCategoryDocs(category.slug)
         remoteTree.set(category.slug, {
             category,
