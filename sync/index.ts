@@ -1,11 +1,12 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import yargs = require('yargs')
+import * as yargs from 'yargs'
 import { slugify } from './slugify'
-import { Client, DocParams } from './readme'
+import { Client } from './readme'
 import { HTTPError } from 'got'
 import * as matter from 'gray-matter'
 import * as assert from 'assert'
+import { DocForm, Category, DocSummaryParent } from './generated/readme'
 
 const argv = yargs
                 .version(false)
@@ -17,13 +18,14 @@ const argv = yargs
 
 const client = new Client(argv.apiKey, argv.version)
 
-function upsertDoc(remoteTree: object, category: string, filepath: string, options: { parentDoc?: string, slug?: string } = {}) {
+type RemoteTreeEntry = { category: Category, docs: DocSummaryParent[] }
+type RemoteTree = Map<string, RemoteTreeEntry>
+
+function upsertDoc(remoteTree: RemoteTree, category: string, filepath: string, options: { parentDoc?: string, slug?: string } = {}) {
     assert(fs.statSync(filepath).isFile)
     const slug = options.slug || slugify(path.parse(filepath).name)
 
-    console.log(`Syncing doc ${filepath} with slug "${slug}"`)
-
-    const existing = remoteTree[slugify(category)].docs.find((doc) => {
+    const existing = remoteTree.get(slugify(category)).docs.find((doc) => {
         if (doc.slug === slug)
             return true
 
@@ -32,27 +34,27 @@ function upsertDoc(remoteTree: object, category: string, filepath: string, optio
 
     const metadata = matter(fs.readFileSync(filepath))
 
-    const form: DocParams = {
+    const form: DocForm = {
         slug,
         title: metadata.data.title,
         body: metadata.content,
-        category: remoteTree[slugify(category)]._id,
+        category: remoteTree.get(slugify(category)).category._id,
         parentDoc: options.parentDoc,
         hidden: false,
     }
 
     if (existing) {
-        console.log(`Updating ${filepath} -> ${category} / ${slug}`)
+        console.log(`\tUpdating ${filepath} -> ${category} / ${slug}`)
         return client.updateDoc(slug, form).then(x => x.body)
     } else {
-        console.log(`Creating ${filepath} -> ${category} / ${slug}`)
+        console.log(`\tCreating ${filepath} -> ${category} / ${slug}`)
         return client.createDoc(form).then(x => x.body)
     }
 }
 
-async function upsertDir(remoteTree: object, category: string, dirpath: string) {
+async function upsertDir(remoteTree: RemoteTree, category: string, dirpath: string) {
     assert(fs.statSync(dirpath).isDirectory)
-    console.log(`Syncing dir ${dirpath}`)
+    console.log(`\tSyncing dir ${dirpath}`)
 
     const children = fs.readdirSync(dirpath)
     if (!children.includes('index.md')) {
@@ -70,6 +72,25 @@ async function upsertDir(remoteTree: object, category: string, dirpath: string) 
     }
 }
 
+async function deleteNotPresent({ category, docs }: RemoteTreeEntry) {
+    for (const doc of docs) {
+        // delete children
+        for (const child of doc.children) {
+            if (!fs.existsSync(path.join(argv.docs, category.slug, doc.slug, child.slug + '.md'))) {
+                console.log(`\tDeleting remote ${category.slug} / ${doc.slug} / ${child.slug}`)
+                await client.deleteDoc(doc.slug)
+            }
+        }
+
+        // delete parents
+        if (!fs.existsSync(path.join(argv.docs, category.slug, doc.slug, 'index.md'))
+         && !fs.existsSync(path.join(argv.docs, category.slug, doc.slug + '.md'))) {
+            console.log(`\tDeleting remote ${category.slug} / ${doc.slug}`)
+            await client.deleteDoc(doc.slug)
+        }
+    }
+}
+
 /**
  * Only one layer of nesting supported
  *
@@ -80,30 +101,33 @@ async function upsertDir(remoteTree: object, category: string, dirpath: string) 
  *    +- child.md
  *    +- index.md
  */
-async function sync(remoteTree: object) {
+async function sync(remoteTree: RemoteTree) {
     for (const category of fs.readdirSync(argv.docs)) {
+        console.log(category)
         const categoryPath = path.join(argv.docs, category)
         for (const doc of fs.readdirSync(categoryPath)) {
             const docPath = path.join(categoryPath, doc)
             if (doc.endsWith('.md')) {
-                console.log((await upsertDoc(remoteTree, category, docPath, null)).body)
+                await upsertDoc(remoteTree, category, docPath)
             } else {
                 await upsertDir(remoteTree, category, path.join(argv.docs, category, doc))
             }
         }
+
+        await deleteNotPresent(remoteTree.get(slugify(category)))
     }
 }
 
 async function main() {
     const localCategories = fs.readdirSync(argv.docs)
-    const remoteTree: object = {}
+    const remoteTree: RemoteTree = new Map()
     let errored = false
 
     console.log('Fetching categories')
     for (const localCategoryName of localCategories) {
         try {
             const remoteCategory = await client.getCategory(slugify(localCategoryName))
-            remoteTree[remoteCategory.body.slug] = remoteCategory.body
+            remoteTree.set(remoteCategory.body.slug, { category: remoteCategory.body, docs: [] })
         } catch (e) {
             if (e instanceof HTTPError) {
                 if (e.response.statusCode == 404) {
@@ -117,9 +141,12 @@ async function main() {
     if (errored)
         return
 
-    for (const category of Object.values(remoteTree)) {
+    for (const [slug, { category }] of remoteTree) {
         const remoteDocs = await client.getCategoryDocs(category.slug)
-        remoteTree[category.slug].docs = remoteDocs.body
+        remoteTree.set(category.slug, {
+            category,
+            docs: remoteDocs.body,
+        })
     }
 
     console.log(require('util').inspect(remoteTree, { depth: 999 }))

@@ -1,0 +1,6 @@
+code:
+  flow:
+    readme:
+      version: latest
+      generators:
+        ts_declarations: sync/generated

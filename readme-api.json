@@ -1,0 +1,65 @@
+{
+    "name": "readme",
+    "base_url": "https://dash.readme.io/api/v1",
+    "models": {
+        "category": {
+            "fields": [
+                { "name": "id", "type": "string" },
+                { "name": "version", "type": "string" },
+                { "name": "project", "type": "string" },
+                { "name": "slug", "type": "string" },
+                { "name": "title", "type": "string" },
+                { "name": "reference", "type": "boolean" },
+                { "name": "order", "type": "long" },
+                { "name": "createdAt", "type": "date-time-iso8601" }
+            ]
+        },
+
+        "doc_summary_parent": {
+            "fields": [
+                { "name": "id", "type": "string" },
+                { "name": "hidden", "type": "boolean" },
+                { "name": "order", "type": "long" },
+                { "name": "slug", "type": "string" },
+                { "name": "title", "type": "string" },
+                { "name": "children", "type": "[doc_summary_child]" }
+            ]
+        },
+
+        "doc_summary_child": {
+            "fields": [
+                { "name": "id", "type": "string" },
+                { "name": "hidden", "type": "boolean" },
+                { "name": "order", "type": "long" },
+                { "name": "slug", "type": "string" },
+                { "name": "title", "type": "string" }
+            ]
+        },
+
+        "doc": {
+            "fields": [
+                { "name": "id", "type": "string" },
+                { "name": "body", "type": "string" },
+                { "name": "category", "type": "string" },
+                { "name": "hidden", "type": "boolean" },
+                { "name": "parentDoc", "type": "string" },
+                { "name": "project", "type": "string" },
+                { "name": "slug", "type": "string" },
+                { "name": "title", "type": "string" },
+                { "name": "type", "type": "string" },
+                { "name": "version", "type": "string" }
+            ]
+        },
+
+        "doc_form": {
+            "fields": [
+                { "name": "slug", "type": "string", "required": false },
+                { "name": "title", "type": "string", "required": false },
+                { "name": "body", "type": "string", "required": false },
+                { "name": "category", "type": "string", "required": false },
+                { "name": "parentDoc", "type": "string", "required": false },
+                { "name": "hidden", "type": "boolean", "required": false }
+            ]
+        }
+    }
+}

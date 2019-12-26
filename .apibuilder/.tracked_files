@@ -1,0 +1,5 @@
+---
+flow:
+  readme:
+    ts_declarations:
+    - sync/generated/readme.ts
