@@ -18,6 +18,7 @@
     "build/"
   ],
   "dependencies": {
+    "chalk": "^3.0.0",
     "got": "^10.2.0",
     "gray-matter": "^4.0.2",
     "yargs": "^15.0.2"
