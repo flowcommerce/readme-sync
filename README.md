@@ -10,25 +10,32 @@ This is a CLI tool that synchronizes markdown files from a local directory (typi
 
 Top level folders are mapped to categories. Second and third level `.md` files are synced as docs. Readme only supports two levels of nesting (Category > Parent Doc > Child Doc). If you want a doc with children, create a folder with the doc name, and create an `index.md` file inside it.
 
+The folder and file names are turned into the slugs.
+
 Example:
 
 ```
 docs
 ├── Welcome
-│   ├── introduction.md
-│   └── license.md
+│   ├── Introduction.md
+│   └── License.md
 └── Integration
-    ├── installation.md
-    ├── setup.md
+    ├── Installation.md
+    ├── Setup.md
     └── Configuration
         ├── index.md
-        ├── database.md
-        └── proxy.md
+        ├── Database.md
+        └── Proxy.md
 ```
 
 Becomes
 
 ![](result.png)
+
+## Limitations
+
+- Ordering is not supported. Just re-order the documents in the UI.
+- Categories cannot yet be created automatically. They must be manually created.
 
 ## Development
 
