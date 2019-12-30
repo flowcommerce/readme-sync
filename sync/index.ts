@@ -43,6 +43,7 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
         slug,
         title: metadata.data.title,
         body: metadata.content,
+        excerpt: metadata.data.excerpt,
         category: remoteTree.get(slugify(categoryName)).category._id,
         parentDoc: options.parent ? options.parent._id : undefined,
         hidden: false,
@@ -53,12 +54,14 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
     if (existing) {
         console.log(`\tUpdating ${blueBright(filepath)} -> ${green(destination)}`)
         const doc = await client.updateDoc(slug, form)
-        debug(`updated. title[${doc.body.title}] slug[${doc.body.slug}]`)
+        debug('updated')
+        debug(doc.body)
         return doc.body
     } else {
         console.log(`\tCreating ${blueBright(filepath)} -> ${green(destination)}`)
         const doc = await client.createDoc(form)
-        debug(`created. title[${doc.body.title}] slug[${doc.body.slug}]`)
+        debug('created')
+        debug(doc.body)
         return doc.body
     }
 }
@@ -194,7 +197,7 @@ async function main(): Promise<void> {
     if (errored)
         return
 
-    debug(require('util').inspect(remoteTree, { depth: 999 }))
+    debug(remoteTree)
     await sync(remoteTree)
 }
 

@@ -27,6 +27,7 @@ declare namespace io.flow.readme.v0.models {
     readonly 'slug'?: string;
     readonly 'title'?: string;
     readonly 'body'?: string;
+    readonly 'excerpt'?: string;
     readonly 'category'?: string;
     readonly 'parentDoc'?: string;
     readonly 'hidden'?: boolean;
