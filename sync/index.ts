@@ -27,7 +27,7 @@ type RemoteTreeEntry = { category: Category; docs: DocSummaryParent[] }
 type RemoteTree = Map<string, RemoteTreeEntry>
 
 async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath: string, options: { parent?: Doc; slug?: string } = {}): Promise<Doc> {
-    assert(fs.statSync(filepath).isFile)
+    assert(fs.statSync(filepath).isFile())
     const slug = options.slug || slugify(path.parse(filepath).name)
 
     const existing = remoteTree.get(slugify(categoryName)).docs.find((doc) => {
@@ -72,7 +72,7 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
  * +- config.md
  */
 async function upsertDir(remoteTree: RemoteTree, categoryName: string, dirpath: string): Promise<void> {
-    assert(fs.statSync(dirpath).isDirectory)
+    assert(fs.statSync(dirpath).isDirectory())
 
     const children = fs.readdirSync(dirpath)
     if (!children.includes('index.md')) {
@@ -136,7 +136,7 @@ async function deleteNotPresent({ category, docs }: RemoteTreeEntry, categoryDir
  */
 async function sync(remoteTree: RemoteTree): Promise<void> {
     for (const category of fs.readdirSync(argv.docs)) {
-        if (category.startsWith('.'))
+        if (category.startsWith('.') || !fs.statSync(path.join(argv.docs, category)).isDirectory())
             continue
 
         console.log(category)
@@ -157,14 +157,13 @@ async function sync(remoteTree: RemoteTree): Promise<void> {
 }
 
 async function main(): Promise<void> {
-    const localCategories = fs.readdirSync(argv.docs)
     const remoteTree: RemoteTree = new Map()
     let errored = false
 
     // we need to fetch the categories from local dir names because there is no API to get this from readme.com
     console.log('Fetching categories')
-    for (const localCategoryName of localCategories) {
-        if (localCategoryName.startsWith('.'))
+    for (const localCategoryName of fs.readdirSync(argv.docs)) {
+        if (localCategoryName.startsWith('.') || !fs.statSync(path.join(argv.docs, localCategoryName)).isDirectory())
             continue
 
         const slug = slugify(localCategoryName)
@@ -183,10 +182,12 @@ async function main(): Promise<void> {
         } catch (e) {
             if (e instanceof HTTPError) {
                 if (e.response.statusCode == 404) {
-                    console.log(`I cannot create categories yet. Please manually create the category ${localCategoryName} (slug ${slug}) in Readme.`)
-                    errored = true
+                    console.error(`I cannot create categories yet. Please manually create the category ${localCategoryName} (slug ${slug}) in Readme.`)
                 }
+            } else {
+                console.error(e)
             }
+            errored = true
         }
     }
 
