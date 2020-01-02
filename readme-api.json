@@ -4,7 +4,7 @@
     "models": {
         "category": {
             "fields": [
-                { "name": "id", "type": "string" },
+                { "name": "_id", "type": "string" },
                 { "name": "version", "type": "string" },
                 { "name": "project", "type": "string" },
                 { "name": "slug", "type": "string" },
@@ -17,7 +17,7 @@
 
         "doc_summary_parent": {
             "fields": [
-                { "name": "id", "type": "string" },
+                { "name": "_id", "type": "string" },
                 { "name": "hidden", "type": "boolean" },
                 { "name": "order", "type": "long" },
                 { "name": "slug", "type": "string" },
@@ -28,7 +28,7 @@
 
         "doc_summary_child": {
             "fields": [
-                { "name": "id", "type": "string" },
+                { "name": "_id", "type": "string" },
                 { "name": "hidden", "type": "boolean" },
                 { "name": "order", "type": "long" },
                 { "name": "slug", "type": "string" },
@@ -38,7 +38,7 @@
 
         "doc": {
             "fields": [
-                { "name": "id", "type": "string" },
+                { "name": "_id", "type": "string" },
                 { "name": "body", "type": "string" },
                 { "name": "category", "type": "string" },
                 { "name": "hidden", "type": "boolean" },
