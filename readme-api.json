@@ -42,6 +42,7 @@
                 { "name": "body", "type": "string" },
                 { "name": "category", "type": "string" },
                 { "name": "hidden", "type": "boolean" },
+                { "name": "order", "type": "integer" },
                 { "name": "parentDoc", "type": "string" },
                 { "name": "project", "type": "string" },
                 { "name": "slug", "type": "string" },
@@ -59,7 +60,8 @@
                 { "name": "excerpt", "type": "string", "required": false },
                 { "name": "category", "type": "string", "required": false },
                 { "name": "parentDoc", "type": "string", "required": false },
-                { "name": "hidden", "type": "boolean", "required": false }
+                { "name": "hidden", "type": "boolean", "required": false },
+                { "name": "order", "type": "integer" }
             ]
         }
     }

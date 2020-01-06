@@ -44,6 +44,7 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
         title: metadata.data.title,
         body: metadata.content,
         excerpt: metadata.data.excerpt,
+        order: metadata.data.order,
         category: remoteTree.get(slugify(categoryName)).category._id,
         parentDoc: options.parent ? options.parent._id : undefined,
         hidden: false,
@@ -68,7 +69,7 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
 
 /**
  * Insert and update a doc and its children
- * 
+ *
  * integration/
  * +- index.md
  * +- setup.md
@@ -127,7 +128,7 @@ async function deleteNotPresent({ category, docs }: RemoteTreeEntry, categoryDir
 
 /**
  * Insert, update, and delete remote docs.
- * 
+ *
  * Only two layers of nesting supported
  *
  * category/

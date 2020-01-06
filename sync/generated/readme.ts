@@ -15,6 +15,7 @@ declare namespace io.flow.readme.v0.models {
     readonly 'body': string;
     readonly 'category': string;
     readonly 'hidden': boolean;
+    readonly 'order': number;
     readonly 'parentDoc': string;
     readonly 'project': string;
     readonly 'slug': string;
@@ -31,6 +32,7 @@ declare namespace io.flow.readme.v0.models {
     readonly 'category'?: string;
     readonly 'parentDoc'?: string;
     readonly 'hidden'?: boolean;
+    readonly 'order': number;
   }
 
   interface DocSummaryChild {
