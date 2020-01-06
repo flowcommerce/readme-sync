@@ -32,6 +32,22 @@ Becomes
 
 ![](result.png)
 
+## File Contents
+
+Markdown, with front matter:
+
+```markdown
+---
+title: "Installation"
+excerpt: "How to Install Arch Linux"
+order: 30
+---
+
+# Installation
+
+...
+```
+
 ## Limitations
 
 - Ordering is not supported. Just re-order the documents in the UI.
