@@ -63,6 +63,66 @@
                 { "name": "hidden", "type": "boolean", "required": false },
                 { "name": "order", "type": "integer" }
             ]
+        },
+
+        "error": {
+            "fields": [
+                { "name": "description", "type": "string" },
+                { "name": "error", "type": "string" },
+                { "name": "errors", "type": "json", "required": false }
+            ]
+        }
+    },
+
+    "resources": {
+        "category": {
+            "path": "/categories",
+            "operations": [
+                {
+                    "method": "GET",
+                    "path": "/:slug",
+                    "responses": {
+                        "200": { "type": "category" },
+                        "404": { "type": "error" }
+                    }
+                },
+                {
+                    "method": "GET",
+                    "path": "/:slug/docs",
+                    "responses": {
+                        "200": { "type": "[doc_summary_parent]" },
+                        "404": { "type": "error" }
+                    }
+                }
+            ]
+        },
+
+        "doc": {
+            "path": "/docs",
+            "operations": [
+                {
+                    "method": "POST",
+                    "body": { "type": "doc_form" },
+                    "responses": {
+                        "200": { "type": "doc" }
+                    }
+                },
+                {
+                    "method": "PUT",
+                    "path": "/:slug",
+                    "body": { "type": "doc_form" },
+                    "responses": {
+                        "200": { "type": "doc" }
+                    }
+                },
+                {
+                    "method": "DELETE",
+                    "path": "/:slug",
+                    "responses": {
+                        "200": { "type": "unit" }
+                    }
+                }
+            ]
         }
     }
 }

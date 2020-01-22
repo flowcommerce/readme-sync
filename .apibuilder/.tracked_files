@@ -1,5 +1,5 @@
 ---
 flow:
   readme:
-    ts_declarations:
+    ts_sdk:
     - sync/generated/readme.ts
