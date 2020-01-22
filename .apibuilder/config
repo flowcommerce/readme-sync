@@ -3,4 +3,4 @@ code:
     readme:
       version: latest
       generators:
-        ts_declarations: sync/generated
+        ts_sdk: sync/generated

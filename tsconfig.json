@@ -3,7 +3,8 @@
         "target": "ES2015",
         "downlevelIteration": true,
         "outDir": "build/",
-        "module": "commonjs"
+        "module": "commonjs",
+        "esModuleInterop": true,
     },
     "include": [
         "sync"
