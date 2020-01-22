@@ -50,7 +50,6 @@ order: 30
 
 ## Limitations
 
-- Ordering is not supported. Just re-order the documents in the UI.
 - Categories cannot yet be created automatically. They must be manually created.
 
 ## Development
