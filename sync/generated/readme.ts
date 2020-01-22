@@ -1,5 +1,4 @@
-import isomorphicFetch from 'isomorphic-fetch';
-import url from 'url';
+import * as url from 'url';
 
 declare namespace io.flow.readme.v0.models {
   interface Category {
@@ -153,7 +152,7 @@ class HttpClient {
   private fetch: FetchFunction;
 
   constructor(options: HttpClientOptions = {}) {
-    this.fetch = options.fetch != null ? options.fetch : isomorphicFetch;
+    this.fetch = options.fetch != null ? options.fetch : fetch;
   }
 
   public request(request: HttpClientRequest): Promise<any> {
