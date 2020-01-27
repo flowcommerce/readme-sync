@@ -5,7 +5,7 @@ import yargs from 'yargs'
 import matter from 'gray-matter'
 import assert from 'assert'
 import { DocForm, Category, DocSummaryParent, Doc, isResponseError, createClient as createReadmeClient } from './generated/readme'
-import { slugify } from './slugify'
+import { slugify, orderFromName, nameWithoutOrder } from './util'
 import { blueBright, green, yellow, redBright } from 'chalk'
 import _debug from 'debug'
 import fetch from 'isomorphic-fetch'
@@ -41,9 +41,12 @@ const client = createReadmeClient({
 type RemoteTreeEntry = { category: Category; docs: DocSummaryParent[] }
 type RemoteTree = Map<string, RemoteTreeEntry>
 
-async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath: string, options: { parent?: Doc; slug?: string } = {}): Promise<Doc> {
+async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath: string, options: { parent?: Doc; slug?: string; order?: number } = {}): Promise<Doc> {
     assert(fs.statSync(filepath).isFile())
-    const slug = options.slug || slugify(path.parse(filepath).name)
+
+    const docFileName = path.parse(filepath).name
+
+    const slug = options.slug || slugify(nameWithoutOrder(docFileName))
 
     const existing = remoteTree.get(slugify(categoryName)).docs.find((doc) => {
         if (doc.slug === slug)
@@ -59,7 +62,7 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
         title: metadata.data.title,
         body: metadata.content,
         excerpt: metadata.data.excerpt,
-        order: metadata.data.order,
+        order: orderFromName(docFileName),
         category: remoteTree.get(slugify(categoryName)).category._id,
         parentDoc: options.parent ? options.parent._id : undefined,
         hidden: false,
@@ -102,7 +105,12 @@ async function upsertDir(remoteTree: RemoteTree, categoryName: string, dirpath: 
         return
     }
 
-    const parent = await upsertDoc(remoteTree, categoryName, path.join(dirpath, 'index.md'), { slug: slugify(path.basename(dirpath)) })
+    const parentName = path.basename(dirpath)
+
+    const parent = await upsertDoc(remoteTree, categoryName, path.join(dirpath, 'index.md'), {
+        slug: slugify(nameWithoutOrder(parentName)),
+        order: orderFromName(parentName),
+    })
 
     for (const child of children) {
         if (child === 'index.md')
@@ -122,7 +130,7 @@ async function deleteNotPresent({ category, docs }: RemoteTreeEntry, categoryDir
         // delete children
         for (const remoteChild of remoteDoc.children) {
 
-            const localChild = localDocDir && fs.readdirSync(path.join(categoryDir, localDocDir)).find(d => slugify(path.parse(d).name) === remoteChild.slug)
+            const localChild = localDocDir && fs.readdirSync(path.join(categoryDir, localDocDir)).find(d => slugify(nameWithoutOrder(path.parse(d).name)) === remoteChild.slug)
 
             if (!(localDocDir && localChild && fs.existsSync(path.join(categoryDir, localDocDir, localChild)))) {
                 console.log(`\tDeleting remote ${redBright(`${category.slug} / ${remoteDoc.slug} / ${remoteChild.slug}`)}`)
@@ -133,7 +141,7 @@ async function deleteNotPresent({ category, docs }: RemoteTreeEntry, categoryDir
 
         const indexMdExists = localDocDir && fs.existsSync(path.join(categoryDir, localDocDir, 'index.md'))
 
-        const localDoc = fs.readdirSync(categoryDir).find(d => slugify(path.parse(d).name) === remoteDoc.slug)
+        const localDoc = fs.readdirSync(categoryDir).find(d => slugify(nameWithoutOrder(path.parse(d).name)) === remoteDoc.slug)
 
         // delete parents
         if (!indexMdExists && !localDoc) {
