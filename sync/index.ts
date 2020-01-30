@@ -73,10 +73,7 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
 
     if (existing) {
         console.log(`\tUpdating ${blueBright(filepath)} -> ${green(destination)}`)
-        const doc = await client.docs.putBySlug({
-            slug,
-            body: form,
-        })
+        const doc = await client.docs.putBySlug({ slug, body: form })
         debug('updated')
         debug(doc)
         return doc
@@ -213,8 +210,16 @@ function ensureUniqueSlugs(): void {
                 for (const child of fs.readdirSync(docPath)) {
                     const childPath = path.join(docPath, child)
 
-                    if (child.startsWith('.') || child === 'index.md') {
+                    if (child.startsWith('.')) {
                         continue
+                    } else if (child === 'index.md') {
+                        const slug = slugify(nameWithoutOrder(doc)) // parent dir
+                        if (Object.keys(slugs).includes(slug)) {
+                            console.log(`Error: ${redBright(childPath)} has the same slug as ${redBright(slugs[slug])}`)
+                            exit = true
+                        } else {
+                            slugs[slug] = childPath
+                        }
                     } else {
                         const slug = slugify(nameWithoutOrder(path.parse(child).name))
                         if (Object.keys(slugs).includes(slug)) {
