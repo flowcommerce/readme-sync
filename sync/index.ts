@@ -62,7 +62,7 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
         title: metadata.data.title,
         body: metadata.content,
         excerpt: metadata.data.excerpt,
-        order: orderFromName(docFileName),
+        order: options.order != null ? options.order : orderFromName(docFileName),
         category: remoteTree.get(slugify(categoryName)).category._id,
         parentDoc: options.parent ? options.parent._id : undefined,
         hidden: false,
