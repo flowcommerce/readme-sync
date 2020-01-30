@@ -46,7 +46,7 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
 
     const docFileName = path.parse(filepath).name
 
-    const slug = options.slug || slugify(nameWithoutOrder(docFileName))
+    const slug = options.slug ?? slugify(nameWithoutOrder(docFileName))
 
     const existing = remoteTree.get(slugify(categoryName)).docs.find((doc) => {
         if (doc.slug === slug)
@@ -62,7 +62,7 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
         title: metadata.data.title,
         body: metadata.content,
         excerpt: metadata.data.excerpt,
-        order: options.order != null ? options.order : orderFromName(docFileName),
+        order: options.order ?? orderFromName(docFileName),
         category: remoteTree.get(slugify(categoryName)).category._id,
         parentDoc: options.parent ? options.parent._id : undefined,
         hidden: false,
