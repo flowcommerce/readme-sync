@@ -212,10 +212,10 @@ async function main(): Promise<void> {
         } catch (e) {
             if (isResponseError(e) && e.response.statusCode == 404) {
                 console.error(`I cannot create categories yet. Please manually create the category ${localCategoryName} (slug ${slug}) in Readme.`)
+                errored = true
             } else {
-                console.error(e)
+                throw e
             }
-            errored = true
         }
     }
 
