@@ -40,6 +40,7 @@ Markdown, with front matter:
 ---
 title: "Installation"
 excerpt: "How to Install Arch Linux"
+hidden: true
 ---
 
 # Installation

@@ -65,7 +65,7 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
         order: options.order ?? orderFromName(docFileName),
         category: remoteTree.get(slugify(categoryName)).category._id,
         parentDoc: options.parent ? options.parent._id : undefined,
-        hidden: false,
+        hidden: metadata.data.hidden ?? false,
     }
 
     const destination = `${slugify(categoryName)}${options.parent ? ` / ${options.parent.slug}` : ''} / ${slug}`
