@@ -125,7 +125,7 @@ async function upsertDir(remoteTree: RemoteTree, categoryName: string, dirpath: 
  */
 async function deleteNotPresent({ category, docs }: RemoteTreeEntry, categoryDir: string): Promise<void> {
     for (const remoteDoc of docs) {
-        const localDocDir = fs.readdirSync(categoryDir).find(d => slugify(d) === remoteDoc.slug)
+        const localDocDir = fs.readdirSync(categoryDir).find(d => slugify(nameWithoutOrder(d)) === remoteDoc.slug)
 
         // delete children
         for (const remoteChild of remoteDoc.children) {
