@@ -17,15 +17,15 @@ Example:
 ```
 docs
 ├── Welcome
-│   ├── Introduction.md
-│   └── License.md
+│   ├── 00 - Introduction.md
+│   └── 10 - License.md
 └── Integration
-    ├── Installation.md
-    ├── Setup.md
+    ├── 00 - Installation.md
+    ├── 10 - Setup.md
     └── Configuration
         ├── index.md
-        ├── Database.md
-        └── Proxy.md
+        ├── 00 - Database.md
+        └── 10 - Proxy.md
 ```
 
 Becomes
@@ -40,7 +40,6 @@ Markdown, with front matter:
 ---
 title: "Installation"
 excerpt: "How to Install Arch Linux"
-order: 30
 ---
 
 # Installation
