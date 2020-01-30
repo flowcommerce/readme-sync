@@ -18,6 +18,7 @@ const argv = yargs
         'apiKey': { type: 'string', demandOption: true },
         'docs': { type: 'string', demandOption: true },
         'version': { type: 'string', demandOption: true },
+        'validateOnly': { type: 'boolean' },
     }).argv
 
 const client = createReadmeClient({
@@ -186,9 +187,62 @@ async function sync(remoteTree: RemoteTree): Promise<void> {
     }
 }
 
+function ensureUniqueSlugs(): void {
+    const slugs = {}
+    let exit = false
+
+    for (const category of fs.readdirSync(argv.docs)) {
+        if (category.startsWith('.') || !fs.statSync(path.join(argv.docs, category)).isDirectory())
+            continue
+
+        const categoryPath = path.join(argv.docs, category)
+        for (const doc of fs.readdirSync(categoryPath)) {
+            const docPath = path.join(categoryPath, doc)
+            if (doc.startsWith('.')) {
+                continue
+            } else if (doc.endsWith('.md')) {
+                const slug = slugify(nameWithoutOrder(path.parse(doc).name))
+                if (Object.keys(slugs).includes(slug)) {
+                    console.log(`Error: ${redBright(docPath)} has the same slug as ${redBright(slugs[slug])}`)
+                    exit = true
+                } else {
+                    slugs[slug] = docPath
+                }
+            } else {
+
+                for (const child of fs.readdirSync(docPath)) {
+                    const childPath = path.join(docPath, child)
+
+                    if (child.startsWith('.') || child === 'index.md') {
+                        continue
+                    } else {
+                        const slug = slugify(nameWithoutOrder(path.parse(child).name))
+                        if (Object.keys(slugs).includes(slug)) {
+                            console.log(`Error: ${redBright(childPath)} has the same slug as ${redBright(slugs[slug])}`)
+                            exit = true
+                        } else {
+                            slugs[slug] = childPath
+                        }
+                    }
+
+                }
+
+            }
+        }
+    }
+
+    if (exit) {
+        process.exit(1)
+    }
+}
+
 async function main(): Promise<void> {
     const remoteTree: RemoteTree = new Map()
     let errored = false
+
+    ensureUniqueSlugs()
+    if (argv.validateOnly)
+        return
 
     // we need to fetch the categories from local dir names because there is no API to get this from readme.com
     console.log('Fetching categories')
