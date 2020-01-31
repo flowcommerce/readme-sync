@@ -279,7 +279,7 @@ async function main(): Promise<void> {
     }
 
     if (errored)
-        return
+        process.exit(1)
 
     debug(remoteTree)
     await sync(remoteTree)
