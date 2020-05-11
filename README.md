@@ -43,8 +43,8 @@ Markdown, with front matter:
 ```markdown
 ---
 title: "Installation"
-excerpt: "How to Install Arch Linux"
-hidden: true
+excerpt: "How to Install Arch Linux" # optional
+hidden: true # optional
 ---
 
 # Installation
@@ -56,23 +56,13 @@ hidden: true
 
 - Categories cannot yet be created automatically. They must be manually created.
 
-## Notes on behavior
+## Syncing Behavior
 
-**ACROSS** multiple categories: how does syncing of pages work?
-
-  - Q: I have a subset of categories to sync locally, and a superset of categories in the web UI? What happens?
-      - A: Only the subset of local categories gets synced. Any category that doesn't have a local directory is untouched.
-
-**WITHIN** 1 category: how does syncing of pages work? 
-  - Q I have a superset of docs in the web UI in 1 category, and only sync a local subset of them. do the other docs in the web UI get deleted?
-       - A: yes, the superset of docs in the web UI is deleted, and now your category only contains the subset of docs you synced locally.
-  - Q: I have a superset of docs in Github in 1 category, and only a subset in the web UI. do the docs get added to the ReadMe web UI?
-      - A: yup, the local docs get created in the web UI.
-
-  **OTHER NOTES ON BEHAVIOR**  
-- Hide/Publish pages: You can control whether pages are published or hidden in each page's frontmattter with hidden: true or hidden: false.
-- if you try to duplicate markdown file names, you'll get duplicate file warnings, even if the files are in separate docs categories.
-- the publishing order is alphanumeric. You can force ordering by prefixing your files with 01, 02, etc. Then, these ordered pages go first in the table of contents (stripped of their 01 - , -02 ordering prefixes). After that, for example, if you created a "a-page.md", it would be added at the end of the category's table of contents. if you then created another local page "aa-page.md", it would show up in the table of contents before a-page.md
+- If you have a category on readme.com that you don't have locally, the category and its contents will remain untouched on readme.com.
+- If you have a doc on readme.com that you don't have locally (but you have the category), it will be deleted from readme.com.
+- If you have a doc locally that is not on readme.com, it will be uploaded to readme.com
+- If you try to create two docs with the same name, you'll get an error about document slugs not being unique, even if the files are in separate categories.
+- The publishing order is alphanumeric. You can force ordering by prefixing your files with `01 - `, `02 -`, etc. Then, these ordered pages go first in the table of contents (stripped of their `01 - `, `02 -` ordering prefixes).
 
 ## Development
 
@@ -80,6 +70,3 @@ hidden: true
 1. `nvm install`
 1. `npm install`
 1. `npx ts-node sync/index.ts --apiKey <key> --version <version> --docs <dir>`
-
-
-
