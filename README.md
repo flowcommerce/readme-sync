@@ -43,8 +43,8 @@ Markdown, with front matter:
 ```markdown
 ---
 title: "Installation"
-excerpt: "How to Install Arch Linux"
-hidden: true
+excerpt: "How to Install Arch Linux" # optional
+hidden: true # optional
 ---
 
 # Installation
@@ -55,6 +55,14 @@ hidden: true
 ## Limitations
 
 - Categories cannot yet be created automatically. They must be manually created.
+
+## Syncing Behavior
+
+- If you have a category on readme.com that you don't have locally, the category and its contents will remain untouched on readme.com.
+- If you have a doc on readme.com that you don't have locally (but you have the category), it will be deleted from readme.com.
+- If you have a doc locally that is not on readme.com, it will be uploaded to readme.com
+- If you try to create two docs with the same name, you'll get an error about document slugs not being unique, even if the files are in separate categories.
+- The publishing order is alphanumeric. You can force ordering by prefixing your files with `01 - `, `02 -`, etc. Then, these ordered pages go first in the table of contents (stripped of their `01 - `, `02 -` ordering prefixes).
 
 ## Development
 
