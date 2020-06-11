@@ -9,6 +9,7 @@ import { slugify, orderFromName, nameWithoutOrder } from './util'
 import { blueBright, green, yellow, redBright } from 'chalk'
 import _debug from 'debug'
 import fetch from 'isomorphic-fetch'
+import { ensureFrontMatter } from './validation'
 
 const debug = _debug('readme-sync')
 
@@ -246,6 +247,8 @@ async function main(): Promise<void> {
     let errored = false
 
     ensureUniqueSlugs()
+    if (!ensureFrontMatter(argv.docs))
+        process.exit(1)
     if (argv.validateOnly)
         return
 
