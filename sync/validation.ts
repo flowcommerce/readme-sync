@@ -9,7 +9,7 @@ function checkDoc(docPath: string, content: Buffer): boolean {
     let passed = true
 
     for (const key of Object.keys(frontmatter.data)) {
-        if (!['title', 'hidden'].includes(key)) {
+        if (!['title', 'hidden', 'excerpt'].includes(key)) {
             console.log(`Error: ${redBright(docPath)}: invalid frontmatter key ${key}`)
             passed = false
         }
