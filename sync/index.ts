@@ -4,7 +4,7 @@ import path from 'path'
 import yargs from 'yargs'
 import matter from 'gray-matter'
 import assert from 'assert'
-import { DocForm, Category, DocSummaryParent, Doc, isResponseError, createClient as createReadmeClient } from './generated/readme'
+import { DocForm, Category, DocSummaryParent, Doc, createClient as createReadmeClient } from './generated/readme'
 import { slugify, orderFromName, nameWithoutOrder } from './util'
 import { blueBright, green, yellow, redBright } from 'chalk'
 import _debug from 'debug'
@@ -76,14 +76,28 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
         console.log(`\tUpdating ${blueBright(filepath)} -> ${green(destination)}`)
         const doc = await client.docs.putBySlug({ slug, body: form })
         debug('updated')
-        debug(doc)
-        return doc
+        debug(doc.status)
+        debug(doc.body)
+        if (doc.status == 400) {
+            console.error(`Error: ${doc.body.error} - ${doc.body.description}`)
+            if (doc.body.errors != null)
+                console.error(doc.body.errors)
+            throw new Error(doc.body.description)
+        }
+        return doc.body
     } else {
         console.log(`\tCreating ${blueBright(filepath)} -> ${green(destination)}`)
         const doc = await client.docs.post({ body: form })
         debug('created')
-        debug(doc)
-        return doc
+        debug(doc.status)
+        debug(doc.body)
+        if (doc.status == 400) {
+            console.error(`Error: ${doc.body.error} - ${doc.body.description}`)
+            if (doc.body.errors != null)
+                console.error(doc.body.errors)
+            throw new Error(doc.body.description)
+        }
+        return doc.body
     }
 }
 
@@ -260,23 +274,25 @@ async function main(): Promise<void> {
 
         const slug = slugify(localCategoryName)
 
-        try {
-            const [remoteCategory, remoteDocs] = await Promise.all([
-                client.categories.getBySlug({ slug }),
-                client.categories.getDocsBySlug({ slug }),
-            ])
-            assert(remoteCategory.slug === slug)
+        const [remoteCategory, remoteDocs] = await Promise.all([
+            client.categories.getBySlug({ slug }),
+            client.categories.getDocsBySlug({ slug }),
+        ])
+        if (remoteCategory.status == 200 && remoteDocs.status == 200) {
+            assert(remoteCategory.body.slug === slug)
             console.log(`Got ${yellow(localCategoryName)}`)
             remoteTree.set(slug, {
-                category: remoteCategory,
-                docs: remoteDocs,
+                category: remoteCategory.body,
+                docs: remoteDocs.body,
             })
-        } catch (e) {
-            if (isResponseError(e) && e.response.statusCode == 404) {
+        } else {
+            if (remoteCategory.status == 404) {
                 console.error(`I cannot create categories yet. Please manually create the category ${localCategoryName} (slug ${slug}) in Readme.`)
                 errored = true
             } else {
-                throw e
+                console.error(remoteCategory)
+                console.error(remoteDocs)
+                throw new Error('something happened')
             }
         }
     }

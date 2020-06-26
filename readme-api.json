@@ -104,7 +104,8 @@
                     "method": "POST",
                     "body": { "type": "doc_form" },
                     "responses": {
-                        "200": { "type": "doc" }
+                        "200": { "type": "doc" },
+                        "400": { "type": "error" }
                     }
                 },
                 {
@@ -112,7 +113,8 @@
                     "path": "/:slug",
                     "body": { "type": "doc_form" },
                     "responses": {
-                        "200": { "type": "doc" }
+                        "200": { "type": "doc" },
+                        "400": { "type": "error" }
                     }
                 },
                 {
