@@ -99,6 +99,7 @@ export function ensureLinksAreValid(docs: string): boolean {
     const slugs = []
     const link = /\[(?<text>[^)\n]+)\]\(doc:(?<target>[A-Za-z0-9-]+)(#[A-Za-z0-9-]+)?\)/g
 
+    // Step 1: Gather all doc slugs
     walkDocTree(docs, (docPath, isChild) => {
         if (isChild && path.basename(docPath) == 'index.md')
             slugs.push(slugify(nameWithoutOrder(path.parse(path.dirname(docPath)).name)))
@@ -106,6 +107,7 @@ export function ensureLinksAreValid(docs: string): boolean {
             slugs.push(slugify(nameWithoutOrder(path.parse(docPath).name)))
     })
 
+    // Step 2: Check that each link points to a valid slug
     walkDocTree(docs, (docPath) => {
         const contents = fs.readFileSync(docPath).toString()
         for (const match of contents.matchAll(link)) {
