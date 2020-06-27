@@ -16,6 +16,8 @@ function walkDocTree(root: string, cb: (docPath: string, isChild: boolean) => vo
                 continue
             } else if (doc.endsWith('.md')) {
                 cb(docPath, false)
+            } else if (!fs.statSync(docPath).isDirectory()) {
+                console.warn(`Warning: ${docPath} is not a .md file nor a directory`)
             } else {
 
                 for (const child of fs.readdirSync(docPath)) {
