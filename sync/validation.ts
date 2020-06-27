@@ -35,7 +35,7 @@ function walkDocTree(root: string, cb: (docPath: string, isChild: boolean) => vo
 
 }
 
-function checkDoc(docPath: string, content: Buffer): boolean {
+function validateFrontMatter(docPath: string, content: Buffer): boolean {
     const frontmatter = matter(content)
     const { title, hidden } = frontmatter.data
     let passed = true
@@ -65,7 +65,7 @@ export function ensureFrontMatter(docs: string): boolean {
     let passed = true
 
     walkDocTree(docs, (docPath) => {
-        passed = passed && checkDoc(docPath, fs.readFileSync(docPath))
+        passed = passed && validateFrontMatter(docPath, fs.readFileSync(docPath))
     })
 
     return passed
