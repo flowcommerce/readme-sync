@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { redBright } from 'chalk'
+import { redBright, green, underline, blueBright } from 'chalk'
 import matter from 'gray-matter'
 import { slugify, nameWithoutOrder } from './util'
 
@@ -88,6 +88,31 @@ export function ensureUniqueSlugs(docs: string): boolean {
             passed = false
         } else {
             slugs[slug] = docPath
+        }
+    })
+
+    return passed
+}
+
+export function ensureLinksAreValid(docs: string): boolean {
+    let passed = true
+    const slugs = []
+    const link = /\[(?<text>[^)\n]+)\]\(doc:(?<target>[A-Za-z0-9-]+)(#[A-Za-z0-9-]+)?\)/g
+
+    walkDocTree(docs, (docPath, isChild) => {
+        if (isChild && path.basename(docPath) == 'index.md')
+            slugs.push(slugify(nameWithoutOrder(path.parse(path.dirname(docPath)).name)))
+        else
+            slugs.push(slugify(nameWithoutOrder(path.parse(docPath).name)))
+    })
+
+    walkDocTree(docs, (docPath) => {
+        const contents = fs.readFileSync(docPath).toString()
+        for (const match of contents.matchAll(link)) {
+            if (!slugs.includes(match.groups.target)) {
+                passed = false
+                console.log(`Broken link ${underline(blueBright(`[${match.groups.text}](doc:${match.groups.target})`))} in ${green(docPath)}`)
+            }
         }
     })
 

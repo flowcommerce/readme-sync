@@ -9,7 +9,7 @@ import { slugify, orderFromName, nameWithoutOrder } from './util'
 import { blueBright, green, yellow, redBright } from 'chalk'
 import _debug from 'debug'
 import fetch from 'isomorphic-fetch'
-import { ensureFrontMatter, ensureUniqueSlugs } from './validation'
+import { ensureFrontMatter, ensureUniqueSlugs, ensureLinksAreValid } from './validation'
 
 const debug = _debug('readme-sync')
 
@@ -206,6 +206,8 @@ async function main(): Promise<void> {
     if (!ensureUniqueSlugs(argv.docs))
         process.exit(1)
     if (!ensureFrontMatter(argv.docs))
+        process.exit(1)
+    if (!ensureLinksAreValid(argv.docs))
         process.exit(1)
 
     console.log('Docs look good')
