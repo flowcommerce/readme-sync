@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { redBright } from 'chalk'
 import matter from 'gray-matter'
+import { slugify, nameWithoutOrder } from './util'
 
 function checkDoc(docPath: string, content: Buffer): boolean {
     const frontmatter = matter(content)
@@ -54,6 +55,61 @@ export function ensureFrontMatter(docs: string): boolean {
                     } else if (child.endsWith('.md')) {
                         const content = fs.readFileSync(childPath)
                         passed = passed && checkDoc(childPath, content)
+                    }
+
+                }
+
+            }
+        }
+    }
+
+    return passed
+}
+
+export function ensureUniqueSlugs(docs: string): boolean {
+    const slugs = {}
+    let passed = true
+
+    for (const category of fs.readdirSync(docs)) {
+        if (category.startsWith('.') || !fs.statSync(path.join(docs, category)).isDirectory())
+            continue
+
+        const categoryPath = path.join(docs, category)
+        for (const doc of fs.readdirSync(categoryPath)) {
+            const docPath = path.join(categoryPath, doc)
+            if (doc.startsWith('.')) {
+                continue
+            } else if (doc.endsWith('.md')) {
+                const slug = slugify(nameWithoutOrder(path.parse(doc).name))
+                if (Object.keys(slugs).includes(slug)) {
+                    console.log(`Error: ${redBright(docPath)} has the same slug as ${redBright(slugs[slug])}`)
+                    passed = false
+                } else {
+                    slugs[slug] = docPath
+                }
+            } else {
+
+                for (const child of fs.readdirSync(docPath)) {
+                    const childPath = path.join(docPath, child)
+
+                    if (child.startsWith('.')) {
+                        continue
+                    } else if (child === 'index.md') {
+                        const slug = slugify(nameWithoutOrder(doc)) // parent dir
+                        if (Object.keys(slugs).includes(slug)) {
+                            console.log(`Error: ${redBright(childPath)} has the same slug as ${redBright(slugs[slug])}`)
+                            passed = false
+                        } else {
+                            slugs[slug] = childPath
+                        }
+                    } else {
+                        const slug = slugify(nameWithoutOrder(path.parse(child).name))
+                        if (Object.keys(slugs).includes(slug)) {
+                            console.log(`Error: ${redBright(childPath)} has the same slug as ${redBright(slugs[slug])}`)
+                            passed = false
+                        } else {
+                            slugs[slug] = childPath
+                        }
                     }
 
                 }
