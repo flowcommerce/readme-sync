@@ -11,7 +11,8 @@ import _debug from 'debug'
 import fetch from 'isomorphic-fetch'
 import { ensureFrontMatter } from './validation'
 
-const debug = _debug('readme-sync')
+const info = _debug('readme-sync:info')
+const verbose = _debug('readme-sync:verbose')
 
 const argv = yargs
     .version(false)
@@ -24,9 +25,9 @@ const argv = yargs
 
 const client = createReadmeClient({
     fetch: async (url, options) => {
-        debug(`${options.method} ${url}`)
-        debug('body', options.body)
-        debug('headers', options.headers)
+        info(`${options.method} ${url}`)
+        verbose('body', options.body)
+        verbose('headers', options.headers)
         const response = await fetch(url, {
             ...options,
             headers: {
@@ -35,7 +36,7 @@ const client = createReadmeClient({
                 'authorization': `Basic ${Buffer.from(argv.apiKey + ':').toString('base64')}`,
             }
         })
-        debug('response', response)
+        verbose('response', response)
         return response
     }
 })
@@ -75,9 +76,8 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
     if (existing) {
         console.log(`\tUpdating ${blueBright(filepath)} -> ${green(destination)}`)
         const doc = await client.docs.putBySlug({ slug, body: form })
-        debug('updated')
-        debug(doc.status)
-        debug(doc.body)
+        info(`updated - ${doc.status}`)
+        verbose(doc.body)
         if (doc.status == 400) {
             console.error(`Error: ${doc.body.error} - ${doc.body.description}`)
             if (doc.body.errors != null)
@@ -88,14 +88,17 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
     } else {
         console.log(`\tCreating ${blueBright(filepath)} -> ${green(destination)}`)
         const doc = await client.docs.post({ body: form })
-        debug('created')
-        debug(doc.status)
-        debug(doc.body)
+        info(`created - ${doc.status}`)
+        verbose(doc.body)
         if (doc.status == 400) {
             console.error(`Error: ${doc.body.error} - ${doc.body.description}`)
             if (doc.body.errors != null)
                 console.error(doc.body.errors)
             throw new Error(doc.body.description)
+        }
+        if (doc.body.slug !== slug) {
+            console.error(doc.body)
+            throw new Error('Bug. Existing document not updated.')
         }
         return doc.body
     }
@@ -147,7 +150,7 @@ async function deleteNotPresent({ category, docs }: RemoteTreeEntry, categoryDir
 
             if (!(localDocDir && localChild && fs.existsSync(path.join(categoryDir, localDocDir, localChild)))) {
                 console.log(`\tDeleting remote ${redBright(`${category.slug} / ${remoteDoc.slug} / ${remoteChild.slug}`)}`)
-                debug(`because ${categoryDir}/${localDocDir}/${localChild || (remoteChild.slug + '.md')} doesn't exist`)
+                info(`because ${categoryDir}/${localDocDir}/${localChild || (remoteChild.slug + '.md')} doesn't exist`)
                 await client.docs.deleteBySlug({ slug: remoteChild.slug })
             }
         }
@@ -159,7 +162,7 @@ async function deleteNotPresent({ category, docs }: RemoteTreeEntry, categoryDir
         // delete parents
         if (!indexMdExists && !localDoc) {
             console.log(`\tDeleting remote ${redBright(`${category.slug} / ${remoteDoc.slug}`)}`)
-            debug(`because ${categoryDir}/${localDocDir}/index.md and ${categoryDir}/${remoteDoc.slug}.md don't exist`)
+            info(`because ${categoryDir}/${localDocDir}/index.md and ${categoryDir}/${remoteDoc.slug}.md don't exist`)
             await client.docs.deleteBySlug({ slug: remoteDoc.slug })
         }
     }
@@ -300,7 +303,7 @@ async function main(): Promise<void> {
     if (errored)
         process.exit(1)
 
-    debug(remoteTree)
+    info(remoteTree)
     await sync(remoteTree)
 }
 
