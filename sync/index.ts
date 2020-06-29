@@ -9,7 +9,7 @@ import { slugify, orderFromName, nameWithoutOrder } from './util'
 import { blueBright, green, yellow, redBright } from 'chalk'
 import _debug from 'debug'
 import fetch from 'isomorphic-fetch'
-import { ensureFrontMatter } from './validation'
+import { ensureFrontMatter, ensureUniqueSlugs, ensureLinksAreValid } from './validation'
 
 const info = _debug('readme-sync:info')
 const verbose = _debug('readme-sync:verbose')
@@ -202,72 +202,21 @@ async function sync(remoteTree: RemoteTree): Promise<void> {
     }
 }
 
-function ensureUniqueSlugs(): void {
-    const slugs = {}
-    let exit = false
-
-    for (const category of fs.readdirSync(argv.docs)) {
-        if (category.startsWith('.') || !fs.statSync(path.join(argv.docs, category)).isDirectory())
-            continue
-
-        const categoryPath = path.join(argv.docs, category)
-        for (const doc of fs.readdirSync(categoryPath)) {
-            const docPath = path.join(categoryPath, doc)
-            if (doc.startsWith('.')) {
-                continue
-            } else if (doc.endsWith('.md')) {
-                const slug = slugify(nameWithoutOrder(path.parse(doc).name))
-                if (Object.keys(slugs).includes(slug)) {
-                    console.log(`Error: ${redBright(docPath)} has the same slug as ${redBright(slugs[slug])}`)
-                    exit = true
-                } else {
-                    slugs[slug] = docPath
-                }
-            } else {
-
-                for (const child of fs.readdirSync(docPath)) {
-                    const childPath = path.join(docPath, child)
-
-                    if (child.startsWith('.')) {
-                        continue
-                    } else if (child === 'index.md') {
-                        const slug = slugify(nameWithoutOrder(doc)) // parent dir
-                        if (Object.keys(slugs).includes(slug)) {
-                            console.log(`Error: ${redBright(childPath)} has the same slug as ${redBright(slugs[slug])}`)
-                            exit = true
-                        } else {
-                            slugs[slug] = childPath
-                        }
-                    } else {
-                        const slug = slugify(nameWithoutOrder(path.parse(child).name))
-                        if (Object.keys(slugs).includes(slug)) {
-                            console.log(`Error: ${redBright(childPath)} has the same slug as ${redBright(slugs[slug])}`)
-                            exit = true
-                        } else {
-                            slugs[slug] = childPath
-                        }
-                    }
-
-                }
-
-            }
-        }
-    }
-
-    if (exit) {
-        process.exit(1)
-    }
-}
-
 async function main(): Promise<void> {
     const remoteTree: RemoteTree = new Map()
     let errored = false
 
-    ensureUniqueSlugs()
+    if (!ensureUniqueSlugs(argv.docs))
+        process.exit(1)
     if (!ensureFrontMatter(argv.docs))
         process.exit(1)
-    if (argv.validateOnly)
+    if (!ensureLinksAreValid(argv.docs))
+        process.exit(1)
+
+    console.log('Docs look good')
+    if (argv.validateOnly) {
         return
+    }
 
     // we need to fetch the categories from local dir names because there is no API to get this from readme.com
     console.log('Fetching categories')
