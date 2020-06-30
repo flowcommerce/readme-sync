@@ -4,7 +4,11 @@ import { redBright, green, underline, blueBright } from 'chalk'
 import matter from 'gray-matter'
 import { slugify, nameWithoutOrder } from './util'
 
-function walkDocTree(root: string, cb: (docPath: string, isChild: boolean) => void): void {
+function walkDocTree(
+    root: string,
+    cb: (docPath: string, isChild: boolean) => void,
+    dirCb: (dirPath: string) => void = () => {}
+): void {
     for (const category of fs.readdirSync(root)) {
         if (category.startsWith('.') || !fs.statSync(path.join(root, category)).isDirectory())
             continue
@@ -19,6 +23,8 @@ function walkDocTree(root: string, cb: (docPath: string, isChild: boolean) => vo
             } else if (!fs.statSync(docPath).isDirectory()) {
                 console.warn(`Warning: ${docPath} is not a .md file nor a directory`)
             } else {
+
+                dirCb(docPath)
 
                 for (const child of fs.readdirSync(docPath)) {
                     const childPath = path.join(docPath, child)
@@ -86,7 +92,7 @@ export function ensureUniqueSlugs(docs: string): boolean {
 
         const slug = slugify(nameWithoutOrder(parsedPath.name))
         if (Object.keys(slugs).includes(slug)) {
-            console.log(`Error: ${redBright(docPath)} has the same slug as ${redBright(slugs[slug])}`)
+            console.error(`Error: ${redBright(docPath)} has the same slug as ${redBright(slugs[slug])}`)
             passed = false
         } else {
             slugs[slug] = docPath
@@ -115,10 +121,27 @@ export function ensureLinksAreValid(docs: string): boolean {
         for (const match of contents.matchAll(link)) {
             if (!slugs.includes(match.groups.target)) {
                 passed = false
-                console.log(`Broken link ${underline(blueBright(`[${match.groups.text}](doc:${match.groups.target})`))} in ${green(docPath)}`)
+                console.error(`Broken link ${underline(blueBright(`[${match.groups.text}](doc:${match.groups.target})`))} in ${green(docPath)}`)
             }
         }
     })
+
+    return passed
+}
+
+export function ensureIndexMdExists(docs: string): boolean {
+    let passed = true
+
+    walkDocTree(
+        docs,
+        () => {/* don't care about files */},
+        (dir) => { // check dirs
+            if (!fs.readdirSync(dir).includes('index.md')) {
+                console.error(`Error: "${dir}" has no index.md`)
+                passed = false
+            }
+        }
+    )
 
     return passed
 }
