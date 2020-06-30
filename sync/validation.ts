@@ -7,7 +7,7 @@ import { slugify, nameWithoutOrder } from './util'
 function walkDocTree(
     root: string,
     cb: (docPath: string, isChild: boolean) => void,
-    dirCb: (dirPath: string) => void = () => {}
+    dirCb: (dirPath: string) => void = (): void => {/* ignore by default */}
 ): void {
     for (const category of fs.readdirSync(root)) {
         if (category.startsWith('.') || !fs.statSync(path.join(root, category)).isDirectory())
