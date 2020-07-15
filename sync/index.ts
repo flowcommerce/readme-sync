@@ -4,13 +4,15 @@ import path from 'path'
 import yargs from 'yargs'
 import matter from 'gray-matter'
 import assert from 'assert'
-import { DocForm, Category, DocSummaryParent, Doc, isResponseError, createClient as createReadmeClient } from './generated/readme'
+import { DocForm, Category, DocSummaryParent, Doc, createClient as createReadmeClient } from './generated/readme'
 import { slugify, orderFromName, nameWithoutOrder } from './util'
 import { blueBright, green, yellow, redBright } from 'chalk'
 import _debug from 'debug'
 import fetch from 'isomorphic-fetch'
+import { ensureFrontMatter, ensureUniqueSlugs, ensureLinksAreValid, ensureIndexMdExists } from './validation'
 
-const debug = _debug('readme-sync')
+const info = _debug('readme-sync:info')
+const verbose = _debug('readme-sync:verbose')
 
 const argv = yargs
     .version(false)
@@ -23,9 +25,9 @@ const argv = yargs
 
 const client = createReadmeClient({
     fetch: async (url, options) => {
-        debug(`${options.method} ${url}`)
-        debug('body', options.body)
-        debug('headers', options.headers)
+        info(`${options.method} ${url}`)
+        verbose('body', options.body)
+        verbose('headers', options.headers)
         const response = await fetch(url, {
             ...options,
             headers: {
@@ -34,7 +36,7 @@ const client = createReadmeClient({
                 'authorization': `Basic ${Buffer.from(argv.apiKey + ':').toString('base64')}`,
             }
         })
-        debug('response', response)
+        verbose('response', response)
         return response
     }
 })
@@ -74,15 +76,31 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
     if (existing) {
         console.log(`\tUpdating ${blueBright(filepath)} -> ${green(destination)}`)
         const doc = await client.docs.putBySlug({ slug, body: form })
-        debug('updated')
-        debug(doc)
-        return doc
+        info(`updated - ${doc.status}`)
+        verbose(doc.body)
+        if (doc.status == 400) {
+            console.error(`Error: ${doc.body.error} - ${doc.body.description}`)
+            if (doc.body.errors != null)
+                console.error(doc.body.errors)
+            throw new Error(doc.body.description)
+        }
+        return doc.body
     } else {
         console.log(`\tCreating ${blueBright(filepath)} -> ${green(destination)}`)
         const doc = await client.docs.post({ body: form })
-        debug('created')
-        debug(doc)
-        return doc
+        info(`created - ${doc.status}`)
+        verbose(doc.body)
+        if (doc.status == 400) {
+            console.error(`Error: ${doc.body.error} - ${doc.body.description}`)
+            if (doc.body.errors != null)
+                console.error(doc.body.errors)
+            throw new Error(doc.body.description)
+        }
+        if (doc.body.slug !== slug) {
+            console.error(doc.body)
+            throw new Error('Bug. Existing document not updated.')
+        }
+        return doc.body
     }
 }
 
@@ -132,7 +150,7 @@ async function deleteNotPresent({ category, docs }: RemoteTreeEntry, categoryDir
 
             if (!(localDocDir && localChild && fs.existsSync(path.join(categoryDir, localDocDir, localChild)))) {
                 console.log(`\tDeleting remote ${redBright(`${category.slug} / ${remoteDoc.slug} / ${remoteChild.slug}`)}`)
-                debug(`because ${categoryDir}/${localDocDir}/${localChild || (remoteChild.slug + '.md')} doesn't exist`)
+                info(`because ${categoryDir}/${localDocDir}/${localChild || (remoteChild.slug + '.md')} doesn't exist`)
                 await client.docs.deleteBySlug({ slug: remoteChild.slug })
             }
         }
@@ -144,7 +162,7 @@ async function deleteNotPresent({ category, docs }: RemoteTreeEntry, categoryDir
         // delete parents
         if (!indexMdExists && !localDoc) {
             console.log(`\tDeleting remote ${redBright(`${category.slug} / ${remoteDoc.slug}`)}`)
-            debug(`because ${categoryDir}/${localDocDir}/index.md and ${categoryDir}/${remoteDoc.slug}.md don't exist`)
+            info(`because ${categoryDir}/${localDocDir}/index.md and ${categoryDir}/${remoteDoc.slug}.md don't exist`)
             await client.docs.deleteBySlug({ slug: remoteDoc.slug })
         }
     }
@@ -184,70 +202,23 @@ async function sync(remoteTree: RemoteTree): Promise<void> {
     }
 }
 
-function ensureUniqueSlugs(): void {
-    const slugs = {}
-    let exit = false
-
-    for (const category of fs.readdirSync(argv.docs)) {
-        if (category.startsWith('.') || !fs.statSync(path.join(argv.docs, category)).isDirectory())
-            continue
-
-        const categoryPath = path.join(argv.docs, category)
-        for (const doc of fs.readdirSync(categoryPath)) {
-            const docPath = path.join(categoryPath, doc)
-            if (doc.startsWith('.')) {
-                continue
-            } else if (doc.endsWith('.md')) {
-                const slug = slugify(nameWithoutOrder(path.parse(doc).name))
-                if (Object.keys(slugs).includes(slug)) {
-                    console.log(`Error: ${redBright(docPath)} has the same slug as ${redBright(slugs[slug])}`)
-                    exit = true
-                } else {
-                    slugs[slug] = docPath
-                }
-            } else {
-
-                for (const child of fs.readdirSync(docPath)) {
-                    const childPath = path.join(docPath, child)
-
-                    if (child.startsWith('.')) {
-                        continue
-                    } else if (child === 'index.md') {
-                        const slug = slugify(nameWithoutOrder(doc)) // parent dir
-                        if (Object.keys(slugs).includes(slug)) {
-                            console.log(`Error: ${redBright(childPath)} has the same slug as ${redBright(slugs[slug])}`)
-                            exit = true
-                        } else {
-                            slugs[slug] = childPath
-                        }
-                    } else {
-                        const slug = slugify(nameWithoutOrder(path.parse(child).name))
-                        if (Object.keys(slugs).includes(slug)) {
-                            console.log(`Error: ${redBright(childPath)} has the same slug as ${redBright(slugs[slug])}`)
-                            exit = true
-                        } else {
-                            slugs[slug] = childPath
-                        }
-                    }
-
-                }
-
-            }
-        }
-    }
-
-    if (exit) {
-        process.exit(1)
-    }
-}
-
 async function main(): Promise<void> {
     const remoteTree: RemoteTree = new Map()
     let errored = false
 
-    ensureUniqueSlugs()
-    if (argv.validateOnly)
+    if (!ensureUniqueSlugs(argv.docs))
+        process.exit(1)
+    if (!ensureFrontMatter(argv.docs))
+        process.exit(1)
+    if (!ensureLinksAreValid(argv.docs))
+        process.exit(1)
+    if (!ensureIndexMdExists(argv.docs))
+        process.exit(1)
+
+    console.log('Docs look good')
+    if (argv.validateOnly) {
         return
+    }
 
     // we need to fetch the categories from local dir names because there is no API to get this from readme.com
     console.log('Fetching categories')
@@ -257,23 +228,25 @@ async function main(): Promise<void> {
 
         const slug = slugify(localCategoryName)
 
-        try {
-            const [remoteCategory, remoteDocs] = await Promise.all([
-                client.categories.getBySlug({ slug }),
-                client.categories.getDocsBySlug({ slug }),
-            ])
-            assert(remoteCategory.slug === slug)
+        const [remoteCategory, remoteDocs] = await Promise.all([
+            client.categories.getBySlug({ slug }),
+            client.categories.getDocsBySlug({ slug }),
+        ])
+        if (remoteCategory.status == 200 && remoteDocs.status == 200) {
+            assert(remoteCategory.body.slug === slug)
             console.log(`Got ${yellow(localCategoryName)}`)
             remoteTree.set(slug, {
-                category: remoteCategory,
-                docs: remoteDocs,
+                category: remoteCategory.body,
+                docs: remoteDocs.body,
             })
-        } catch (e) {
-            if (isResponseError(e) && e.response.statusCode == 404) {
+        } else {
+            if (remoteCategory.status == 404) {
                 console.error(`I cannot create categories yet. Please manually create the category ${localCategoryName} (slug ${slug}) in Readme.`)
                 errored = true
             } else {
-                throw e
+                console.error(remoteCategory)
+                console.error(remoteDocs)
+                throw new Error('something happened')
             }
         }
     }
@@ -281,7 +254,7 @@ async function main(): Promise<void> {
     if (errored)
         process.exit(1)
 
-    debug(remoteTree)
+    info(remoteTree)
     await sync(remoteTree)
 }
 
