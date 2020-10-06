@@ -9,7 +9,7 @@ import { slugify, orderFromName, nameWithoutOrder } from './util'
 import { blueBright, green, yellow, redBright } from 'chalk'
 import _debug from 'debug'
 import fetch from 'isomorphic-fetch'
-import { ensureFrontMatter, ensureUniqueSlugs, ensureLinksAreValid, ensureIndexMdExists } from './validation'
+import { ensureFrontMatter, ensureUniqueSlugs, ensureLinksAreValid, ensureIndexMdExists, ensureNoWeirdFiles, ensureMaxTwoLevels } from './validation'
 
 const info = _debug('readme-sync:info')
 const verbose = _debug('readme-sync:verbose')
@@ -206,14 +206,18 @@ async function main(): Promise<void> {
     const remoteTree: RemoteTree = new Map()
     let errored = false
 
-    if (!ensureUniqueSlugs(argv.docs))
-        process.exit(1)
-    if (!ensureFrontMatter(argv.docs))
-        process.exit(1)
-    if (!ensureLinksAreValid(argv.docs))
-        process.exit(1)
-    if (!ensureIndexMdExists(argv.docs))
-        process.exit(1)
+    const checks = [
+        ensureNoWeirdFiles,
+        ensureMaxTwoLevels,
+        ensureIndexMdExists,
+        ensureUniqueSlugs,
+        ensureFrontMatter,
+        ensureLinksAreValid,
+    ]
+
+    for (const check of checks)
+        if (!check(argv.docs))
+            process.exit(1)
 
     console.log('Docs look good')
     if (argv.validateOnly) {
