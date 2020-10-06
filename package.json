@@ -1,7 +1,7 @@
 {
   "name": "readme-sync",
   "author": "Ben Iofel <ben@flow.io>",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "repository": {
     "url": "https://github.com/flowcommerce/readme-sync",
     "type": "git"
