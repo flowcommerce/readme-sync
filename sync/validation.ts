@@ -37,7 +37,7 @@ function walkDocTree(
 }
 
 export function ensureNoWeirdFiles(root: string): boolean {
-    return walkDocTree(root, (filepath, level, stat) => {
+    return walkDocTree(root, (filepath, _, stat) => {
         if (stat.isFile()) {
             if (filepath.endsWith('.md'))
                 return true
