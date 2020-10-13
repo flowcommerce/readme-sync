@@ -72,7 +72,7 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
         hidden: metadata.data.hidden ?? false,
     }
 
-    const destination = `${slugify(categoryName)}${options.parent ? ` / ${options.parent.slug}` : ''} / ${slug}`
+    const destination = `${slugify(categoryName)}${parent ? ` / ${parent.slug}` : ''} / ${slug}`
 
     if (existing) {
         console.log(`\tUpdating ${blueBright(filepath)} -> ${green(destination)}`)
