@@ -45,7 +45,7 @@ const client = createReadmeClient({
 type RemoteTreeEntry = { category: Category; docs: DocSummaryParent[] }
 type RemoteTree = Map<string, RemoteTreeEntry>
 
-async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath: string, options: { parent?: Doc; slug?: string; order?: number } = {}): Promise<Doc> {
+async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath: string, options: { parent: Doc | null; slug?: string; order?: number } = { parent: null }): Promise<Doc> {
     assert(fs.statSync(filepath).isFile())
 
     const docFileName = path.parse(filepath).name
@@ -68,7 +68,7 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
         excerpt: metadata.data.excerpt,
         order: options.order ?? orderFromName(docFileName),
         category: remoteTree.get(slugify(categoryName)).category._id,
-        parentDoc: options.parent ? options.parent._id : undefined,
+        parentDoc: options.parent === null ? null : options.parent._id,
         hidden: metadata.data.hidden ?? false,
     }
 
@@ -127,6 +127,7 @@ async function upsertDir(remoteTree: RemoteTree, categoryName: string, dirpath: 
     const parent = await upsertDoc(remoteTree, categoryName, path.join(dirpath, 'index.md'), {
         slug: slugify(nameWithoutOrder(parentName)),
         order: orderFromName(parentName),
+        parent: null,
     })
 
     for (const child of children) {
@@ -198,7 +199,7 @@ async function sync(remoteTree: RemoteTree): Promise<void> {
             if (doc.startsWith('.')) {
                 continue
             } else if (doc.endsWith('.md')) {
-                await upsertDoc(remoteTree, category, docPath)
+                await upsertDoc(remoteTree, category, docPath, { parent: null })
             } else {
                 await upsertDir(remoteTree, category, path.join(argv.docs, category, doc))
             }
