@@ -21,6 +21,7 @@ const argv = yargs
         'docs': { type: 'string', demandOption: true },
         'version': { type: 'string', demandOption: true },
         'validateOnly': { type: 'boolean' },
+        'category': { type: 'string', array: true },
     }).argv
 
 const client = createReadmeClient({
@@ -184,6 +185,11 @@ async function sync(remoteTree: RemoteTree): Promise<void> {
     for (const category of fs.readdirSync(argv.docs)) {
         if (category.startsWith('.') || !fs.statSync(path.join(argv.docs, category)).isDirectory())
             continue
+
+        if (argv.category != null && !argv.category.includes(slugify(category))) {
+            console.log(`Skipping ${redBright(category)}`)
+            continue
+        }
 
         console.log(category)
         const categoryPath = path.join(argv.docs, category)
