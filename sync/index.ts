@@ -85,6 +85,7 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
                 console.error(doc.body.errors)
             throw new Error(doc.body.description)
         }
+
         return doc.body
     } else {
         console.log(`\tCreating ${blueBright(filepath)} -> ${green(destination)}`)
@@ -140,31 +141,44 @@ async function upsertDir(remoteTree: RemoteTree, categoryName: string, dirpath: 
 /**
  * Delete remote docs that are not present locally.
  */
-async function deleteNotPresent({ category, docs }: RemoteTreeEntry, categoryDir: string): Promise<void> {
-    for (const remoteDoc of docs) {
-        const localDocDir = fs.readdirSync(categoryDir).find(d => slugify(nameWithoutOrder(d)) === remoteDoc.slug)
+async function deleteNotPresent(remoteTree: RemoteTree): Promise<void> {
+    for (const localCategoryName of fs.readdirSync(argv.docs)) {
+        if (localCategoryName.startsWith('.') || !fs.statSync(path.join(argv.docs, localCategoryName)).isDirectory())
+            continue
 
-        // delete children
-        for (const remoteChild of remoteDoc.children) {
-
-            const localChild = localDocDir && fs.readdirSync(path.join(categoryDir, localDocDir)).find(d => slugify(nameWithoutOrder(path.parse(d).name)) === remoteChild.slug)
-
-            if (!(localDocDir && localChild && fs.existsSync(path.join(categoryDir, localDocDir, localChild)))) {
-                console.log(`\tDeleting remote ${redBright(`${category.slug} / ${remoteDoc.slug} / ${remoteChild.slug}`)}`)
-                info(`because ${categoryDir}/${localDocDir}/${localChild || (remoteChild.slug + '.md')} doesn't exist`)
-                await client.docs.deleteBySlug({ slug: remoteChild.slug })
-            }
+        if (argv.category != null && !argv.category.includes(slugify(localCategoryName))) {
+            console.log(`Skipping ${redBright(localCategoryName)}`)
+            continue
         }
 
-        const indexMdExists = localDocDir && fs.existsSync(path.join(categoryDir, localDocDir, 'index.md'))
+        const categoryDir = path.join(argv.docs, localCategoryName)
+        const { docs, category } = remoteTree.get(slugify(localCategoryName))
 
-        const localDoc = fs.readdirSync(categoryDir).find(d => slugify(nameWithoutOrder(path.parse(d).name)) === remoteDoc.slug)
+        for (const remoteDoc of docs) {
+            const localDocDir = fs.readdirSync(categoryDir).find(d => slugify(nameWithoutOrder(d)) === remoteDoc.slug)
 
-        // delete parents
-        if (!indexMdExists && !localDoc) {
-            console.log(`\tDeleting remote ${redBright(`${category.slug} / ${remoteDoc.slug}`)}`)
-            info(`because ${categoryDir}/${localDocDir}/index.md and ${categoryDir}/${remoteDoc.slug}.md don't exist`)
-            await client.docs.deleteBySlug({ slug: remoteDoc.slug })
+            // delete children
+            for (const remoteChild of remoteDoc.children) {
+
+                const localChild = localDocDir && fs.readdirSync(path.join(categoryDir, localDocDir)).find(d => slugify(nameWithoutOrder(path.parse(d).name)) === remoteChild.slug)
+
+                if (!(localDocDir && localChild && fs.existsSync(path.join(categoryDir, localDocDir, localChild)))) {
+                    console.log(`\tDeleting remote ${redBright(`${category.slug} / ${remoteDoc.slug} / ${remoteChild.slug}`)}`)
+                    info(`because ${categoryDir}/${localDocDir}/${localChild || (remoteChild.slug + '.md')} doesn't exist`)
+                    await client.docs.deleteBySlug({ slug: remoteChild.slug })
+                }
+            }
+
+            const indexMdExists = localDocDir && fs.existsSync(path.join(categoryDir, localDocDir, 'index.md'))
+
+            const localDoc = fs.readdirSync(categoryDir).find(d => slugify(nameWithoutOrder(path.parse(d).name)) === remoteDoc.slug)
+
+            // delete parents
+            if (!indexMdExists && !localDoc) {
+                console.log(`\tDeleting remote ${redBright(`${category.slug} / ${remoteDoc.slug}`)}`)
+                info(`because ${categoryDir}/${localDocDir}/index.md and ${categoryDir}/${remoteDoc.slug}.md don't exist`)
+                await client.docs.deleteBySlug({ slug: remoteDoc.slug })
+            }
         }
     }
 }
@@ -203,34 +217,13 @@ async function sync(remoteTree: RemoteTree): Promise<void> {
                 await upsertDir(remoteTree, category, path.join(argv.docs, category, doc))
             }
         }
-
-        await deleteNotPresent(remoteTree.get(slugify(category)), path.join(argv.docs, category))
     }
 }
 
-async function main(): Promise<void> {
+async function fetchRemoteTree(): Promise<RemoteTree> {
     const remoteTree: RemoteTree = new Map()
-    let errored = false
 
-    const checks = [
-        ensureNoWeirdFiles,
-        ensureMaxTwoLevels,
-        ensureIndexMdExists,
-        ensureUniqueSlugs,
-        ensureFrontMatter,
-        ensureLinksAreValid,
-    ]
-
-    for (const check of checks)
-        if (!check(argv.docs))
-            process.exit(1)
-
-    console.log('Docs look good')
-    if (argv.validateOnly) {
-        return
-    }
-
-    // we need to fetch the categories from local dir names because there is no API to get this from readme.com
+    // TODO: use /api/v1/categories
     console.log('Fetching categories')
     for (const localCategoryName of fs.readdirSync(argv.docs)) {
         if (localCategoryName.startsWith('.') || !fs.statSync(path.join(argv.docs, localCategoryName)).isDirectory())
@@ -252,7 +245,7 @@ async function main(): Promise<void> {
         } else {
             if (remoteCategory.status == 404) {
                 console.error(`I cannot create categories yet. Please manually create the category ${localCategoryName} (slug ${slug}) in Readme.`)
-                errored = true
+                process.exit(1)
             } else {
                 console.error(remoteCategory)
                 console.error(remoteDocs)
@@ -261,11 +254,36 @@ async function main(): Promise<void> {
         }
     }
 
-    if (errored)
-        process.exit(1)
+    return remoteTree
+}
 
+async function main(): Promise<void> {
+    const checks = [
+        ensureNoWeirdFiles,
+        ensureMaxTwoLevels,
+        ensureIndexMdExists,
+        ensureUniqueSlugs,
+        ensureFrontMatter,
+        ensureLinksAreValid,
+    ]
+
+    for (const check of checks)
+        if (!check(argv.docs))
+            process.exit(1)
+
+    console.log('Docs look good')
+    if (argv.validateOnly) {
+        return
+    }
+
+    console.log(blueBright('Step 1: Uploading local docs'))
+    const remoteTree = await fetchRemoteTree()
     info(remoteTree)
     await sync(remoteTree)
+
+    console.log(blueBright('Step 2: Deleting unknown remote docs'))
+    const remoteTreeUpdated = await fetchRemoteTree()
+    await deleteNotPresent(remoteTreeUpdated)
 }
 
 main().catch((err) => {
