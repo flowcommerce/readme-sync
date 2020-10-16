@@ -231,6 +231,7 @@ async function main(): Promise<void> {
     }
 
     // we need to fetch the categories from local dir names because there is no API to get this from readme.com
+    // TODO: use /api/v1/categories
     console.log('Fetching categories')
     for (const localCategoryName of fs.readdirSync(argv.docs)) {
         if (localCategoryName.startsWith('.') || !fs.statSync(path.join(argv.docs, localCategoryName)).isDirectory())
