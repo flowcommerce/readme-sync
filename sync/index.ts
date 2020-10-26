@@ -4,8 +4,8 @@ import path from 'path'
 import yargs from 'yargs'
 import matter from 'gray-matter'
 import assert from 'assert'
-import { DocForm, Category, DocSummaryParent, Doc, createClient as createReadmeClient } from './generated/readme'
-import { slugify, orderFromName, nameWithoutOrder } from './util'
+import { DocForm, Doc, createClient as createReadmeClient } from './generated/readme'
+import { slugify, orderFromName, nameWithoutOrder, findSlugInTree, RemoteTree, RemoteTreeDoc, RemoteTreeEntry, removeSlugFromTree, addDocUnderSlug } from './util'
 import { blueBright, green, yellow, redBright } from 'chalk'
 import _debug from 'debug'
 import fetch from 'isomorphic-fetch'
@@ -42,9 +42,6 @@ const client = createReadmeClient({
     }
 })
 
-type RemoteTreeEntry = { category: Category; docs: DocSummaryParent[] }
-type RemoteTree = Map<string, RemoteTreeEntry>
-
 async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath: string, parent: Doc | null, options: { slug?: string; order?: number } = {}): Promise<Doc> {
     assert(fs.statSync(filepath).isFile())
 
@@ -52,12 +49,8 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
 
     const slug = options.slug ?? slugify(nameWithoutOrder(docFileName))
 
-    const existing = remoteTree.get(slugify(categoryName)).docs.find((doc) => {
-        if (doc.slug === slug)
-            return true
-
-        return doc.children.find(child => child.slug === slug)
-    })
+    const thisTree = remoteTree.get(slugify(categoryName))
+    const existing = findSlugInTree(thisTree, slug)
 
     const metadata = matter(fs.readFileSync(filepath))
 
@@ -74,7 +67,7 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
 
     const destination = `${slugify(categoryName)}${parent ? ` / ${parent.slug}` : ''} / ${slug}`
 
-    if (existing) {
+    if (existing !== null) {
         console.log(`\tUpdating ${blueBright(filepath)} -> ${green(destination)}`)
         const doc = await client.docs.putBySlug({ slug, body: form })
         info(`updated - ${doc.status}`)
@@ -85,6 +78,12 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
                 console.error(doc.body.errors)
             throw new Error(doc.body.description)
         }
+
+        const removed = removeSlugFromTree(thisTree, slug)
+        assert(removed != null)
+        assert(addDocUnderSlug(thisTree, removed, parent?.slug))
+        info(thisTree)
+
         return doc.body
     } else {
         console.log(`\tCreating ${blueBright(filepath)} -> ${green(destination)}`)
@@ -101,6 +100,8 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
             console.error(doc.body)
             throw new Error('Bug. Existing document not updated.')
         }
+        assert(addDocUnderSlug(thisTree, {slug, children: []}, parent?.slug))
+        info(thisTree)
         return doc.body
     }
 }
@@ -141,32 +142,42 @@ async function upsertDir(remoteTree: RemoteTree, categoryName: string, dirpath: 
  * Delete remote docs that are not present locally.
  */
 async function deleteNotPresent({ category, docs }: RemoteTreeEntry, categoryDir: string): Promise<void> {
-    for (const remoteDoc of docs) {
-        const localDocDir = fs.readdirSync(categoryDir).find(d => slugify(nameWithoutOrder(d)) === remoteDoc.slug)
-
-        // delete children
-        for (const remoteChild of remoteDoc.children) {
-
-            const localChild = localDocDir && fs.readdirSync(path.join(categoryDir, localDocDir)).find(d => slugify(nameWithoutOrder(path.parse(d).name)) === remoteChild.slug)
-
-            if (!(localDocDir && localChild && fs.existsSync(path.join(categoryDir, localDocDir, localChild)))) {
-                console.log(`\tDeleting remote ${redBright(`${category.slug} / ${remoteDoc.slug} / ${remoteChild.slug}`)}`)
-                info(`because ${categoryDir}/${localDocDir}/${localChild || (remoteChild.slug + '.md')} doesn't exist`)
-                await client.docs.deleteBySlug({ slug: remoteChild.slug })
-            }
+    /**
+     * doc - the current doc to check
+     * path - the dir to check in
+     */
+    function deleteInTree(doc: RemoteTreeDoc, dirpath: string): void {
+        if (!fs.existsSync(dirpath)) {
+            doc.children.forEach(child => deleteInTree(child, dirpath))
+            console.log(`Deleting ${doc.slug} - we're supposed to search in ${dirpath} but it does not exist`)
+            client.docs.deleteBySlug({ slug: doc.slug }).catch(console.error)
+            return
         }
 
-        const indexMdExists = localDocDir && fs.existsSync(path.join(categoryDir, localDocDir, 'index.md'))
+        const localStat = fs.statSync(dirpath)
+        if (localStat.isFile()) {
+            // dirpath should be a directory, this case means that remotely there is a child but locally there are no children
+            doc.children.forEach(child => deleteInTree(child, dirpath))
+            console.log(`Deleting ${doc.slug} - we're supposed to search in ${dirpath} but it is not a directory`)
+            client.docs.deleteBySlug({ slug: doc.slug }).catch(console.error)
+            return
+        }
 
-        const localDoc = fs.readdirSync(categoryDir).find(d => slugify(nameWithoutOrder(path.parse(d).name)) === remoteDoc.slug)
+        const localDoc = fs.readdirSync(dirpath).find(d =>
+            slugify(nameWithoutOrder(path.parse(d).name)) === doc.slug)
 
-        // delete parents
-        if (!indexMdExists && !localDoc) {
-            console.log(`\tDeleting remote ${redBright(`${category.slug} / ${remoteDoc.slug}`)}`)
-            info(`because ${categoryDir}/${localDocDir}/index.md and ${categoryDir}/${remoteDoc.slug}.md don't exist`)
-            await client.docs.deleteBySlug({ slug: remoteDoc.slug })
+        if (localDoc != null) {
+            // doc found locally, keep going
+            doc.children.forEach(child => deleteInTree(child, `${dirpath}/${localDoc}`))
+        } else {
+            // doc not found locally, delete it remotely
+            doc.children.forEach(child => deleteInTree(child, `${dirpath}/${localDoc}`))
+            console.log(`Deleting ${doc.slug} - doc not found in ${dirpath}`)
+            client.docs.deleteBySlug({ slug: doc.slug }).catch(console.error)
         }
     }
+
+    docs.forEach(doc => deleteInTree(doc, categoryDir))
 }
 
 /**
@@ -248,7 +259,13 @@ async function main(): Promise<void> {
             console.log(`Got ${yellow(localCategoryName)}`)
             remoteTree.set(slug, {
                 category: remoteCategory.body,
-                docs: remoteDocs.body,
+                docs: remoteDocs.body.map(parent => ({
+                    slug: parent.slug,
+                    children: parent.children.map(child => ({
+                        slug: child.slug,
+                        children: [],
+                    })),
+                })),
             })
         } else {
             if (remoteCategory.status == 404) {
