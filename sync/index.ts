@@ -22,6 +22,7 @@ const argv = yargs
         'version': { type: 'string', demandOption: true },
         'validateOnly': { type: 'boolean' },
         'category': { type: 'string', array: true },
+        'dryRun': { type: 'boolean', default: false },
     }).argv
 
 const client = createReadmeClient({
@@ -69,6 +70,24 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
 
     if (existing !== null) {
         console.log(`\tUpdating ${blueBright(filepath)} -> ${green(destination)}`)
+
+        if (argv.dryRun) {
+            console.log(`\t${redBright('DRY RUN')} PUT ${slug}`)
+            return {
+                _id: 'id',
+                slug,
+                body: form.body,
+                category: thisTree.category._id,
+                hidden: form.hidden,
+                order: form.order,
+                parentDoc: form.parentDoc,
+                project: 'proj',
+                title: form.title,
+                type: 'type',
+                version: '1',
+            }
+        }
+
         const doc = await client.docs.putBySlug({ slug, body: form })
         info(`updated - ${doc.status}`)
         verbose(doc.body)
@@ -87,6 +106,24 @@ async function upsertDoc(remoteTree: RemoteTree, categoryName: string, filepath:
         return doc.body
     } else {
         console.log(`\tCreating ${blueBright(filepath)} -> ${green(destination)}`)
+
+        if (argv.dryRun) {
+            console.log(`\t${redBright('DRY RUN')} POST ${slug}`)
+            return {
+                _id: 'id',
+                slug,
+                body: form.body,
+                category: thisTree.category._id,
+                hidden: form.hidden,
+                order: form.order,
+                parentDoc: form.parentDoc,
+                project: 'proj',
+                title: form.title,
+                type: 'type',
+                version: '1',
+            }
+        }
+
         const doc = await client.docs.post({ body: form })
         info(`created - ${doc.status}`)
         verbose(doc.body)
@@ -150,7 +187,10 @@ async function deleteNotPresent({ docs }: RemoteTreeEntry, categoryDir: string):
         if (!fs.existsSync(dirpath)) {
             doc.children.forEach(child => deleteInTree(child, dirpath))
             console.log(`Deleting ${doc.slug} - we're supposed to search in ${dirpath} but it does not exist`)
-            client.docs.deleteBySlug({ slug: doc.slug }).catch(console.error)
+            if (argv.dryRun)
+                console.log(`\t${redBright('DRY RUN')} DELETE ${doc.slug}`)
+            else
+                client.docs.deleteBySlug({ slug: doc.slug }).catch(console.error)
             return
         }
 
@@ -159,7 +199,10 @@ async function deleteNotPresent({ docs }: RemoteTreeEntry, categoryDir: string):
             // dirpath should be a directory, this case means that remotely there is a child but locally there are no children
             doc.children.forEach(child => deleteInTree(child, dirpath))
             console.log(`Deleting ${doc.slug} - we're supposed to search in ${dirpath} but it is not a directory`)
-            client.docs.deleteBySlug({ slug: doc.slug }).catch(console.error)
+            if (argv.dryRun)
+                console.log(`\t${redBright('DRY RUN')} DELETE ${doc.slug}`)
+            else
+                client.docs.deleteBySlug({ slug: doc.slug }).catch(console.error)
             return
         }
 
@@ -173,7 +216,10 @@ async function deleteNotPresent({ docs }: RemoteTreeEntry, categoryDir: string):
             // doc not found locally, delete it remotely
             doc.children.forEach(child => deleteInTree(child, `${dirpath}/${localDoc}`))
             console.log(`Deleting ${doc.slug} - doc not found in ${dirpath}`)
-            client.docs.deleteBySlug({ slug: doc.slug }).catch(console.error)
+            if (argv.dryRun)
+                console.log(`\t${redBright('DRY RUN')} DELETE ${doc.slug}`)
+            else
+                client.docs.deleteBySlug({ slug: doc.slug }).catch(console.error)
         }
     }
 
