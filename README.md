@@ -54,11 +54,11 @@ hidden: true # optional
 
 ## Limitations
 
-- Categories cannot yet be created automatically. They must be manually created. If you don't know existing category slugs, get them with 
+- Categories cannot yet be created automatically. They must be manually created in Readme. You can fetch the existing category slugs with
+```bash
+curl 'https://dash.readme.io/api/v1/categories?perPage=100' -u '<your_readme_api_key>': -H 'x-readme-version: <your_docs_version>'
 ```
-curl --request GET   --url 'https://dash.readme.io/api/v1/categories?perPage=100&page=2'  --header 'authorization: Basic <your_readme_api_key' --header 'x-readme-version: <your_docs_version>'
-```
-Note that category slugs may differ from the category titles you see in dash.readme.io, so this API call is a good way to troubleshoot if you get the error message "can't create categories."  
+Note that category slugs may differ from the category titles you see on dash.readme.io, so this API call is a good way to troubleshoot the error message "can't create categories."
 
 ## Syncing Behavior
 
