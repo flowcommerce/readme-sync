@@ -141,7 +141,7 @@ async function upsertDir(remoteTree: RemoteTree, categoryName: string, dirpath: 
 /**
  * Delete remote docs that are not present locally.
  */
-async function deleteNotPresent({ category, docs }: RemoteTreeEntry, categoryDir: string): Promise<void> {
+async function deleteNotPresent({ docs }: RemoteTreeEntry, categoryDir: string): Promise<void> {
     /**
      * doc - the current doc to check
      * path - the dir to check in
