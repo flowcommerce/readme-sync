@@ -186,7 +186,7 @@ async function deleteNotPresent({ docs }: RemoteTreeEntry, categoryDir: string):
     function deleteInTree(doc: RemoteTreeDoc, dirpath: string): void {
         if (!fs.existsSync(dirpath)) {
             doc.children.forEach(child => deleteInTree(child, dirpath))
-            console.log(`Deleting ${doc.slug} - we're supposed to search in ${dirpath} but it does not exist`)
+            console.log(`\tDeleting ${doc.slug} - we're supposed to search in ${dirpath} but it does not exist`)
             if (argv.dryRun)
                 console.log(`\t${redBright('DRY RUN')} DELETE ${doc.slug}`)
             else
@@ -198,7 +198,7 @@ async function deleteNotPresent({ docs }: RemoteTreeEntry, categoryDir: string):
         if (localStat.isFile()) {
             // dirpath should be a directory, this case means that remotely there is a child but locally there are no children
             doc.children.forEach(child => deleteInTree(child, dirpath))
-            console.log(`Deleting ${doc.slug} - we're supposed to search in ${dirpath} but it is not a directory`)
+            console.log(`\tDeleting ${doc.slug} - we're supposed to search in ${dirpath} but it is not a directory`)
             if (argv.dryRun)
                 console.log(`\t${redBright('DRY RUN')} DELETE ${doc.slug}`)
             else
@@ -215,7 +215,7 @@ async function deleteNotPresent({ docs }: RemoteTreeEntry, categoryDir: string):
         } else {
             // doc not found locally, delete it remotely
             doc.children.forEach(child => deleteInTree(child, `${dirpath}/${localDoc}`))
-            console.log(`Deleting ${doc.slug} - doc not found in ${dirpath}`)
+            console.log(`\tDeleting ${doc.slug} - doc not found in ${dirpath}`)
             if (argv.dryRun)
                 console.log(`\t${redBright('DRY RUN')} DELETE ${doc.slug}`)
             else
