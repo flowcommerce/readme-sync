@@ -121,7 +121,8 @@
                     "method": "DELETE",
                     "path": "/:slug",
                     "responses": {
-                        "200": { "type": "unit" }
+                        "200": { "type": "unit" },
+                        "404": { "type": "error" }
                     }
                 }
             ]
