@@ -20,18 +20,6 @@ function arrayTryEach<E, R>(arr: E[], fn: (t: E) => R | null): R | null {
     return null
 }
 
-export function findSlugInTree(tree: RemoteTree, slug: string): { doc: RemoteTreeDoc, category: RemoteTreeEntry } | null {
-    for (const [_, entry] of tree) {
-        const found = findSlugInCategory(entry, slug)
-        if (found != null)
-            return {
-                doc: found,
-                category: entry,
-            }
-    }
-    return null
-}
-
 /**
  * Return whether a slug was found in a RemoteTreeEntry
  */
@@ -44,6 +32,19 @@ export function findSlugInCategory(tree: RemoteTreeEntry, slug: string): RemoteT
     }
 
     return arrayTryEach(tree.docs, findInDocs)
+}
+
+
+export function findSlugInTree(tree: RemoteTree, slug: string): { doc: RemoteTreeDoc; category: RemoteTreeEntry } | null {
+    for (const [, entry] of tree) {
+        const found = findSlugInCategory(entry, slug)
+        if (found != null)
+            return {
+                doc: found,
+                category: entry,
+            }
+    }
+    return null
 }
 
 /**
