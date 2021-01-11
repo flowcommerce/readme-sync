@@ -302,7 +302,7 @@ export type CategoriesGetBySlugResponse = $HttpOk<io.flow.readme.v0.models.Categ
 export type CategoriesGetDocsBySlugResponse = $HttpOk<io.flow.readme.v0.models.DocSummaryParent[]> | $HttpNotFound<io.flow.readme.v0.models.Error>;
 export type DocsPostResponse = $HttpOk<io.flow.readme.v0.models.Doc> | $HttpBadRequest<io.flow.readme.v0.models.Error>;
 export type DocsPutBySlugResponse = $HttpOk<io.flow.readme.v0.models.Doc> | $HttpBadRequest<io.flow.readme.v0.models.Error>;
-export type DocsDeleteBySlugResponse = $HttpOk<undefined>;
+export type DocsDeleteBySlugResponse = $HttpOk<undefined> | $HttpNotFound<io.flow.readme.v0.models.Error>;
 
 export class CategoriesResource extends $Resource {
   public getBySlug(params: CategoriesGetBySlugParameters): Promise<CategoriesGetBySlugResponse> {
