@@ -1,16 +1,16 @@
-import { findSlugInTree, removeSlugFromTree, addDocUnderSlug } from './util'
+import { findSlugInCategory, removeSlugFromTree, addDocUnderSlug } from './util'
 
-test('findSlugInTree', () => {
+test('findSlugInCategory', () => {
     const doc = {
         slug: 'slug',
         children: []
     }
-    expect(findSlugInTree({
+    expect(findSlugInCategory({
         category: null,
         docs: [doc]
     }, 'slug')).toBe(doc)
 
-    expect(findSlugInTree({
+    expect(findSlugInCategory({
         category: null,
         docs: [{
             slug: 'a',
@@ -27,7 +27,7 @@ test('findSlugInTree', () => {
         }]
     }, 'slug')).toBe(doc)
 
-    expect(findSlugInTree({
+    expect(findSlugInCategory({
         category: null,
         docs: [{
             slug: 'a',
