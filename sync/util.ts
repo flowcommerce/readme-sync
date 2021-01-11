@@ -95,7 +95,7 @@ export function slugify(name: string): string {
 }
 
 function parseNameWithOrder(name: string): {name: string; order?: number} {
-    const match = name.match(/^(\d+) - (.+)/)
+    const match = name.match(/^(\d+)\s*-\s*(.+)/)
     if (match != null)
         return {
             order: parseInt(match[1]),
