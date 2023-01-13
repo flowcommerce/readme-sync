@@ -22,7 +22,7 @@
     "chalk": "^3.0.0",
     "debug": "^4.1.1",
     "gray-matter": "^4.0.2",
-    "isomorphic-fetch": "^2.2.1",
+    "isomorphic-fetch": "^3.0.0",
     "yargs": "^15.0.2"
   },
   "devDependencies": {
