@@ -1,3 +1,4 @@
+import { expect, test } from '@jest/globals'
 import { findSlugInCategory, removeSlugFromTree, addDocUnderSlug } from './util'
 
 test('findSlugInCategory', () => {
