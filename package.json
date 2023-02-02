@@ -10,13 +10,13 @@
   "scripts": {
     "prepare": "tsc",
     "lint": "eslint --ext .ts sync",
-    "test": "tsc && jest build/"
+    "test": "tsc && jest dist/"
   },
   "bin": {
-    "readme-sync": "build/index.js"
+    "readme-sync": "dist/index.js"
   },
   "files": [
-    "build/"
+    "dist/"
   ],
   "dependencies": {
     "chalk": "^3.0.0",
