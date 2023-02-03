@@ -1,10 +1,11 @@
+dist: jammy
 language: node_js
 node_js:
-  - node
+  - lts/*
 
 install:
   - npm install
 
 script:
   - npm run lint
-  - npm run prepare
+  - npm run test
