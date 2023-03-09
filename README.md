@@ -21,15 +21,15 @@ Example:
 ```
 docs
 ├── Welcome
-│   ├── 00 - Introduction.md
-│   └── 10 - License.md
+│   ├── 00-introduction.md
+│   └── 10-license.md
 └── Integration
-    ├── 00 - Installation.md
-    ├── 10 - Setup.md
-    └── Configuration
+    ├── 00-installation.md
+    ├── 10-setup.md
+    └── 20-configuration
         ├── index.md
-        ├── 00 - Database.md
-        └── 10 - Proxy.md
+        ├── 00-database.md
+        └── 10-proxy.md
 ```
 
 Becomes
@@ -66,7 +66,7 @@ Note that category slugs may differ from the category titles you see on dash.rea
 - If you have a doc on readme.com that you don't have locally (but you have the category), it will be deleted from readme.com.
 - If you have a doc locally that is not on readme.com, it will be uploaded to readme.com
 - If you try to create two docs with the same name, you'll get an error about document slugs not being unique, even if the files are in separate categories.
-- The publishing order is alphanumeric. You can force ordering by prefixing your files with `01 - `, `02 -`, etc. Then, these ordered pages go first in the table of contents (stripped of their `01 - `, `02 -` ordering prefixes).
+- The publishing order is alphanumeric. You can force ordering by prefixing your files with `01-`, `02-`, etc. Then, these ordered pages go first in the table of contents (stripped of their `01-`, `02-` ordering prefixes).
 
 ## Development
 
