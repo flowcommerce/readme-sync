@@ -74,3 +74,10 @@ Note that category slugs may differ from the category titles you see on dash.rea
 1. `nvm install`
 1. `npm install`
 1. `npx ts-node sync/index.ts --apiKey <key> --version <version> --docs <dir>`
+
+## Releasing a new version
+
+```bash
+$ npm version patch
+$ npm publish
+```
